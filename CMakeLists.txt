@@ -7,7 +7,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-string(REGEX MATCH "v?([0-9.]+)-.*" _dummy "${GIT_VERSION}")
+string(REGEX MATCH "v?([0-9.]+)-?.*" _dummy "${GIT_VERSION}")
 set(GIT_VERSION "${CMAKE_MATCH_1}")
 
 message(STATUS "Building version ${GIT_VERSION}")

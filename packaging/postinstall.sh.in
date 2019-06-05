@@ -3,4 +3,8 @@ set -e
 
 mkdir -p `dirname @ONT_VBZ_PLUGIN_DEST_PATH@`
 
+# Delete old link
+rm @ONT_VBZ_PLUGIN_DEST_PATH@ || true
+
+# Create new link
 ln -s "@ONT_VBZ_PLUGIN_SOURCE_PATH@" "@ONT_VBZ_PLUGIN_DEST_PATH@"
