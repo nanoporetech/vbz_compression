@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+mkdir -p `dirname @ONT_VBZ_PLUGIN_DEST_PATH@`
+
+ln -s "@ONT_VBZ_PLUGIN_SOURCE_PATH@" "@ONT_VBZ_PLUGIN_DEST_PATH@"

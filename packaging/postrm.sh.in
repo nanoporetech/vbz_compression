@@ -1,0 +1,4 @@
+#! /bin/bash
+set -e
+
+rm -f "@ONT_VBZ_PLUGIN_DEST_PATH@"

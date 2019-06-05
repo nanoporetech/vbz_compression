@@ -1,0 +1,12 @@
+[requires]
+zstd/1.3.4@nanopore/stable
+google-benchmark/1.5@nanopore/stable
+
+[generators]
+cmake
+json
+
+[imports]
+# Copy runtime files to the bin folder
+bin, *.dll -> ../bin
+lib, *.dylib* -> ../bin

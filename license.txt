@@ -1,0 +1,4 @@
+The vbz-plugin software is provided under the Terms and Conditions of the Nanopore Community.
+
+These are available on the Oxford Nanopore Technologies website (https://nanoporetech.com) and
+also inthe included pdf file, "Nanopore Community TCs 09 September 2016.pdf".

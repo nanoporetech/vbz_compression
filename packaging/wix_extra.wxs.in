@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALL_ROOT_PROGRAM_DATA">
+            <Component Id="INSTALL_ROOT_PROGRAM_DATA_PLUGIN" Guid="*">
+                <File Id="INSTALL_ROOT_PROGRAM_DATA_PLUGIN_DLL" Source="@ONT_VBZ_PLUGIN_SOURCE_PATH@" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+    </Fragment>
+</Wix>

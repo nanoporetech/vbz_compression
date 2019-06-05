@@ -1,0 +1,3 @@
+[submodule "third_party/streamvbyte"]
+	path = third_party/streamvbyte
+	url = https://github.com/jorj1988/streamvbyte.git

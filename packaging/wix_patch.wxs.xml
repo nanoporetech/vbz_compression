@@ -1,0 +1,19 @@
+<CPackWiXPatch>
+
+    <CPackWiXFragment Id="#PRODUCT">
+        <DirectoryRef Id="TARGETDIR">
+            <Directory Id="CommonAppDataFolder">
+                <Directory Id="PLUGIN_INSTALL_PREFIX_1" Name="hdf5">
+                    <Directory Id="PLUGIN_INSTALL_PREFIX_2" Name="lib">
+                        <Directory Id="INSTALL_ROOT_PROGRAM_DATA" Name="plugin"/>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </DirectoryRef>
+    </CPackWiXFragment>
+
+    <CPackWiXFragment Id="#PRODUCTFEATURE">
+        <ComponentRef Id="INSTALL_ROOT_PROGRAM_DATA_PLUGIN" />
+    </CPackWiXFragment>
+    
+</CPackWiXPatch>
