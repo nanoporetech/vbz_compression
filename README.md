@@ -1,52 +1,19 @@
-HDF5 Plugins
-------------
+VBZ Compression
+===============
 
+VBZ Compression uses variable byte integer encoding to compress nanopore signal data.
 
-Development without conan
--------------------------
-
-To develop the plugin without conan you need the following installed:
-
-- cmake 3.11 (https://cmake.org/)
-
-and the following c++ dependencies
-
-- zstd development libraries available to cmake
-- hdf5 development libraries available to cmake (required for testing)
-
-Then configure the project using:
-```bash
-> mkdir build
-> cd build
-> cmake -DENABLE_CONAN=OFF ..
-> make -j
-```
-
-Development with conan
-----------------------
-
-To develop the plugin without conan you need the following installed:
-
-- cmake 3.11 (https://cmake.org/)
-- conan (https://conan.io/)
-- ONT artifactory (https://artifactory.oxfordnanolabs.local/artifactory/webapp/#/artifacts/browse/tree/General/ONT-Conan)
-
-Then configure and build the project using:
-```bash
-> mkdir build
-> cd build
-> cmake -DENABLE_CONAN=ON ..
-> make -j
-```
+VBZ uses the following libraries:
+  - https://github.com/facebook/zstd
+  - https://github.com/lemire/streamvbyte
 
 Installation
 ------------
 
-Place the plugin shared library at:
-  - `linux/osx`: `"/usr/local/hdf5/lib/plugin"`
-  - `windows`: `"%ALLUSERSPROFILE%/hdf5/lib/plugin"`
+Run the provided installers to install the hdf5 plugin to the correct directory on your system.
 
-You can then use h5repack or h5py from the command line:
+You can then use HDFView, h5repack or h5py as you normally would:
+
 ```bash
 # Invoke h5repack to pack input.fast5 into output.fast5
 #
@@ -62,4 +29,29 @@ You can then use h5repack or h5py from the command line:
 
 # To compress 4 byte unsigned integers (no zig zag) with level 3 zstd you could use:
 > h5repack -f UD=32020,5,0,0,4,0,3 input.h5 output.h5
+```
+
+
+Development
+-----------
+
+To develop the plugin without conan you need the following installed:
+
+- cmake 3.11 (https://cmake.org/)
+
+and the following c++ dependencies
+
+- zstd development libraries available to cmake
+- hdf5 development libraries available to cmake (required for testing)
+
+The following ubuntu packages provide these libraries:
+  - libhdf5-dev
+  - libzstd-dev
+
+Then configure the project using:
+```bash
+> mkdir build
+> cd build
+> cmake -DENABLE_CONAN=OFF ..
+> make -j
 ```
