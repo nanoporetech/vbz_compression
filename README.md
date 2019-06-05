@@ -50,6 +50,7 @@ The following ubuntu packages provide these libraries:
 
 Then configure the project using:
 ```bash
+> git submodule update --init
 > mkdir build
 > cd build
 > cmake -DENABLE_CONAN=OFF ..

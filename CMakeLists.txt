@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 3.11.0)
 
+execute_process(
+  COMMAND git describe --tags
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+string(REGEX MATCH "v?([0-9.]+)-.*" _dummy "${GIT_VERSION}")
+set(GIT_VERSION "${CMAKE_MATCH_1}")
+
+message(STATUS "Building version ${GIT_VERSION}")
 project(hdf_plugins
-    VERSION 0.1
+    VERSION ${GIT_VERSION}
     LANGUAGES CXX
 )
 
