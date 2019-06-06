@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from unittest import TestCase, main
+from vbz import compress, decompress
+from numpy.testing import assert_array_equal
+
+
+class Tests:
+    """ Base test functions for all 3 encoding/decoding functions """
+    def test_decode(self):
+        """ S1: simple decode """
+        res = compress(self.data)
+        rec = decompress(res, self.dtype)
+        assert_array_equal(self.data, rec)
+
+
+class BasicTest(Tests):
+    """ Base test for encoding and decoding with small simple test case """
+    def setUp(self):
+        self.data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], dtype=self.dtype)
+
+
+class RandTest(Tests):
+    """ Base test encoding and decoding with large random array """
+    def setUp(self):
+        self.data = np.random.randint(self.rmin, self.rmax, size=self.size, dtype=self.dtype)
+
+
+class BasicTestInt16(BasicTest, TestCase):
+    dtype = np.int16
+
+
+class BasicTestUInt16(BasicTest, TestCase):
+    dtype = np.uint16
+
+
+class BasicTestInt32(BasicTest, TestCase):
+    dtype = np.int32
+
+
+class BasicTestUInt32(BasicTest, TestCase):
+    dtype = np.uint32
+
+
+class RandTestInt16(RandTest, TestCase):
+    dtype = np.int16
+    rmin = -2**15
+    rmax = 2**15 -1
+    size = 200000
+
+
+class RandTestUInt16(RandTest, TestCase):
+    dtype = np.uint16
+    rmin = 0
+    rmax = 2**15 - 1
+    size = 200000
+
+
+class RandTestInt32(RandTest, TestCase):
+    dtype = np.int32
+    rmin = -2**31
+    rmax = 2**31 - 1
+    size = 200000
+
+
+class RandTestIntU32(RandTest, TestCase):
+    dtype = np.uint32
+    rmin = 0
+    rmax = 2**31 - 1
+    size = 200000
+
+
+if __name__ == '__main__':
+    main()

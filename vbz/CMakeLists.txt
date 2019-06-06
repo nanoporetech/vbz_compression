@@ -22,12 +22,6 @@ add_dependencies(vbz
     streamvbyte
 )
 
-if (NOT WIN32)
-	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/libstreamvbyte_static.a)
-else()
-	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/streamvbyte_static.lib)
-endif()
-
 target_link_libraries(vbz
     PUBLIC
         ${STREAMVBYTE_STATIC_LIB}

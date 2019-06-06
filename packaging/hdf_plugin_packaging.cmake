@@ -2,6 +2,7 @@ include(CPackComponent)
 
 set(CPACK_PACKAGE_NAME ont-vbz-hdf-plugin)
 set(CPACK_PACKAGE_VENDOR "nanoporetech")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/packaging/readme.txt")
 #set(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_SOURCE_DIR}/packaging/welcome.txt")

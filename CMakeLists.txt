@@ -97,8 +97,14 @@ ExternalProject_Add(
     PREFIX ${CMAKE_BINARY_DIR}/streamvbyte
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR}
 )
+if (NOT WIN32)
+	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/libstreamvbyte_static.a)
+else()
+	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/streamvbyte_static.lib)
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_subdirectory(python)
 add_subdirectory(vbz)
 add_subdirectory(vbz_plugin)
