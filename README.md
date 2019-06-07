@@ -8,6 +8,8 @@ VBZ Compression uses variable byte integer encoding to compress nanopore signal 
   - https://github.com/lemire/streamvbyte
   - https://github.com/facebook/zstd
 
+The performance of VBZ is achieved by taking advantage of the properties of the raw signal and therefore is most effective when applied to the signal dataset. Other datasets you may have in your Fast5 files will not be able to take advantage of the default VBZ settings for compression. VBZ will be used as the default compression scheme in a future release of MinKNOW.
+
 Installation
 ------------
 
@@ -37,6 +39,16 @@ Post installation you can then use `HDFView`, `h5repack` or `h5py` as you normal
 # Invoke h5repack recursively on all reads storing the results inplace using 10 processes
 > find . -name "*.fast5" | xargs -P 10 -I % sh -c "h5repack -f UD=32020,5,0,0,2,1,1 % %.vbz && mv %.vbz %"
 ```
+
+Benchmarks
+----------
+
+VBZ outperforms GZIP in both CPU time (>10X compression, >5X decompression) and compression (>30%).
+
+![Compression Ratio](images/vbz_compression_ratio.png)
+![Compression Performance](images/vbz_x86_compression.png)
+![Decompression Performance](images/vbz_x86_decompression.png)
+
 
 Development
 -----------
