@@ -14,7 +14,8 @@ void streamvbyte_compress_benchmark(benchmark::State& state)
     CompressionOptions options{
         VbzOptions::UseZigZag,
         int_size,
-        VbzOptions::ZstdLevel
+        VbzOptions::ZstdLevel,
+        VBZ_DEFAULT_VERSION
     };
     
     std::vector<char> dest_buffer(vbz_max_compressed_size(vbz_size_t(max_element_count * int_size), &options));

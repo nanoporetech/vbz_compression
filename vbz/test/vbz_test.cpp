@@ -23,6 +23,7 @@ void perform_compression_test(
         dest_buffer.data(),
         vbz_size_t(dest_buffer.size()),
         &options);
+    REQUIRE(!vbz_is_error(final_byte_count));
     dest_buffer.resize(final_byte_count);
 
     std::vector<int8_t> decompressed_bytes(input_data_size);
@@ -33,11 +34,12 @@ void perform_compression_test(
         vbz_size_t(decompressed_bytes.size()),
         &options
     );
+    REQUIRE(!vbz_is_error(decompressed_byte_count));
     decompressed_bytes.resize(decompressed_byte_count);
     auto decompressed = gsl::make_span(decompressed_bytes).as_span<T>();
 
-    INFO("Original     " << dump_explicit<std::int64_t>(data));
-    INFO("Decompressed " << dump_explicit<std::int64_t>(decompressed));
+    //INFO("Original     " << dump_explicit<std::int64_t>(data));
+    //INFO("Decompressed " << dump_explicit<std::int64_t>(decompressed));
     CHECK(decompressed == gsl::make_span(data));
 }
 
@@ -52,7 +54,8 @@ void run_compression_test_suite()
         CompressionOptions simple_options{
             false, // no delta zig zag
             sizeof(T),
-            1
+            1,
+            VBZ_DEFAULT_VERSION
         };
         
         perform_compression_test(simple_data, simple_options);
@@ -66,7 +69,8 @@ void run_compression_test_suite()
         CompressionOptions simple_options{
             true,
             sizeof(T),
-            1
+            1,
+            VBZ_DEFAULT_VERSION
         };
 
         perform_compression_test(simple_data, simple_options);
@@ -80,7 +84,8 @@ void run_compression_test_suite()
         CompressionOptions simple_options{
             true,
             sizeof(T),
-            0
+            0,
+            VBZ_DEFAULT_VERSION
         };
         
         perform_compression_test(simple_data, simple_options);
@@ -104,8 +109,8 @@ void run_compression_test_suite()
             CompressionOptions options{
                 false,
                 sizeof(T),
-                
-                1
+                1,
+                VBZ_DEFAULT_VERSION
             };
             perform_compression_test(random_data, options);
         }
@@ -115,7 +120,8 @@ void run_compression_test_suite()
             CompressionOptions options{
                 true,
                 sizeof(T),
-                0
+                0,
+                VBZ_DEFAULT_VERSION
             };
             
             perform_compression_test(random_data, options);
@@ -126,7 +132,8 @@ void run_compression_test_suite()
             CompressionOptions options{
                 true,
                 sizeof(T),
-                1
+                1,
+                VBZ_DEFAULT_VERSION
             };
             
             perform_compression_test(random_data, options);
@@ -134,17 +141,29 @@ void run_compression_test_suite()
     }
 }
 
-SCENARIO("vbz int8 encoding without integer comression")
+struct InputStruct
+{
+    std::uint32_t size = 100;
+    unsigned char keys[25] = {
+        0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff,
+    };
+};
+
+SCENARIO("vbz int8 encoding")
 {
     run_compression_test_suite<std::int8_t>();
 }
 
-SCENARIO("vbz int16 encoding without integer comression")
+SCENARIO("vbz int16 encoding")
 {
     run_compression_test_suite<std::int16_t>();
 }
 
-SCENARIO("vbz int32 encoding without integer comression")
+SCENARIO("vbz int32 encoding")
 {
     run_compression_test_suite<std::int32_t>();
 }
@@ -161,7 +180,8 @@ SCENARIO("vbz int32 known input data")
             CompressionOptions simple_options{
                 true,
                 sizeof(simple_data[0]),
-                0
+                0,
+                VBZ_DEFAULT_VERSION
             };
             
             THEN("Data compresses/decompresses as expected")
@@ -194,7 +214,8 @@ SCENARIO("vbz int32 known input data")
             CompressionOptions simple_options{
                 true,
                 sizeof(simple_data[0]),
-                100
+                100,
+                VBZ_DEFAULT_VERSION
             };
             
             THEN("Data compresses/decompresses as expected")
@@ -228,28 +249,28 @@ SCENARIO("vbz int16 known input large data")
 {
     GIVEN("Test data from a realistic dataset")
     {
-        std::vector<std::int16_t> large_data(test_data, test_data + (sizeof(test_data)/sizeof(test_data[0])));
-
         WHEN("Compressing with zig-zag deltas")
         {
             CompressionOptions options{
                 true,
-                sizeof(large_data[0]),
-                0
+                sizeof(test_data[0]),
+                0,
+                VBZ_DEFAULT_VERSION
             };
             
-            perform_compression_test(large_data, options);
+            perform_compression_test(test_data, options);
         }
 
         WHEN("Compressing with zstd")
         {
             CompressionOptions options{
-                false,
+                true,
+                sizeof(test_data[0]),
                 1,
-                1
+                VBZ_DEFAULT_VERSION
             };
             
-            perform_compression_test(large_data, options);
+            perform_compression_test(test_data, options);
         }
 
         WHEN("Compressing with no options")
@@ -257,10 +278,11 @@ SCENARIO("vbz int16 known input large data")
             CompressionOptions options{
                 false,
                 1,
-                0
+                0,
+                VBZ_DEFAULT_VERSION
             };
             
-            perform_compression_test(large_data, options);
+            perform_compression_test(test_data, options);
         }
     }
 }
@@ -276,7 +298,8 @@ SCENARIO("vbz sized compression")
             CompressionOptions simple_options{
                 true,
                 sizeof(simple_data[0]),
-                0
+                0,
+                VBZ_DEFAULT_VERSION
             };
             
             

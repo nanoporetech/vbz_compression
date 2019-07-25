@@ -5,6 +5,7 @@ add_executable(vbz_test
     vbz_test.cpp
     main.cpp
 )
+add_sanitizers(vbz_test)
 
 set_property(TARGET vbz_test PROPERTY CXX_STANDARD 11)
 

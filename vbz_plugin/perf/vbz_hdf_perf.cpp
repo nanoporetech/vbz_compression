@@ -6,11 +6,12 @@
 #include "vbz_plugin_user_utils.h"
 
 #include <hdf5.h>
-#include <catch2/catch.hpp>
 
 #include <array>
 
 #include <benchmark/benchmark.h>
+
+static bool plugin_init_result = vbz_register();
 
 template <typename IntType>
 hid_t get_h5_type()
@@ -67,6 +68,7 @@ using FilterSetupFn = decltype(no_filter)*;
 template <typename Generator>
 void vbz_hdf_benchmark(benchmark::State& state, int integer_size, hid_t h5_type, FilterSetupFn setup_filter)
 {
+    (void)plugin_init_result;
     std::size_t max_element_count = 0;
     auto input_value_list = Generator::generate(max_element_count);
     
@@ -168,8 +170,6 @@ BENCHMARK_TEMPLATE(vbz_hdf_benchmark_random_zlib, std::int8_t);
 BENCHMARK_TEMPLATE(vbz_hdf_benchmark_random_zlib, std::int16_t);
 BENCHMARK_TEMPLATE(vbz_hdf_benchmark_random_zlib, std::int32_t);
 */
-
-static bool plugin_init_result = vbz_register();
 
 // Run the benchmark
 BENCHMARK_MAIN();

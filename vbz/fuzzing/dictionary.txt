@@ -1,0 +1,6 @@
+
+# Uses: 185923
+kw1="\xd1\x18\x00\x00"
+
+# Uses: 43711
+kw2="\xff\xff\xffX"

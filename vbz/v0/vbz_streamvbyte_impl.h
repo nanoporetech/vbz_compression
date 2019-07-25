@@ -9,7 +9,7 @@
 
 /// \brief Generic implementation, safe for all integer types, and platforms.
 template <typename T, bool UseZigZag>
-struct StreamVByteWorker
+struct StreamVByteWorkerV0
 {
     static vbz_size_t compress(gsl::span<char const> input_bytes, gsl::span<char> output)
     {
@@ -28,7 +28,7 @@ struct StreamVByteWorker
         std::vector<std::int32_t> input_buffer = cast<std::int32_t>(input);
         std::vector<std::uint32_t> intermediate_buffer(input.size());
         zigzag_delta_encode(input_buffer.data(), intermediate_buffer.data(), input_buffer.size(), 0);
-        
+
         return vbz_size_t(streamvbyte_encode(
             intermediate_buffer.data(),
             std::uint32_t(intermediate_buffer.size()),
@@ -42,9 +42,9 @@ struct StreamVByteWorker
         
         std::vector<std::uint32_t> intermediate_buffer(output.size());
         auto read_bytes = streamvbyte_decode(
-            input.as_span<const std::uint8_t>().data(),
+            input.as_span<std::uint8_t const>().data(),
             intermediate_buffer.data(),
-            std::uint32_t(output.size())
+            vbz_size_t(intermediate_buffer.size())
         );
         if (read_bytes != input.size())
         {

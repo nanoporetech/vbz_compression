@@ -1,7 +1,9 @@
 find_package(GoogleBenchmark)
 
 add_executable(vbz_hdf_perf_test
-    vbz_hdf_perf.cpp)
+    vbz_hdf_perf.cpp
+)
+add_sanitizers(vbz_hdf_perf_test)
 
 target_link_libraries(vbz_hdf_perf_test
     PRIVATE

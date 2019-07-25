@@ -1,11 +1,19 @@
-
-find_path(ZSTD_INCLUDE_DIR NAMES zstd.h)
+find_path(ZSTD_INCLUDE_DIR
+    NAMES zstd.h
+    PATHS ${CONAN_INCLUDE_DIRS_RELEASE}
+)
 
 set(ZSTD_NAMES zstd zstd_static)
 set(ZSTD_NAMES_DEBUG zstdd zstd_staticd)
 
-find_library(ZSTD_LIBRARY_RELEASE NAMES ${ZSTD_NAMES})
-find_library(ZSTD_LIBRARY_DEBUG NAMES ${ZSTD_NAMES_DEBUG})
+find_library(ZSTD_LIBRARY_RELEASE
+    NAMES ${ZSTD_NAMES}
+    PATHS ${CONAN_LIB_DIRS_RELEASE}
+)
+find_library(ZSTD_LIBRARY_DEBUG
+    NAMES ${ZSTD_NAMES_DEBUG}
+    PATHS ${CONAN_LIB_DIRS_DEBUG}
+)
 
 include(SelectLibraryConfigurations)
 select_library_configurations(ZSTD)

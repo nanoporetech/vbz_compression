@@ -10,11 +10,12 @@ import numpy as np
 from _vbz import lib, ffi
 
 
-def compression_options(zigzag, size, zlevel=1):
+def compression_options(zigzag, size, zlevel=1, version=0):
     options = ffi.new("CompressionOptions *")
     options.integer_size = size
     options.perform_delta_zig_zag = zigzag
     options.zstd_compression_level = zlevel
+    options.vbz_version = version
     return options
 
 

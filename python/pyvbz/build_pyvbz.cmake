@@ -6,7 +6,7 @@ message("Include paths for pyvbz $ENV{VBZ_INCLUDE_PATHS}")
 message("Linking pyvbz against $ENV{VBZ_LINK_LIBS}")
 
 execute_process(
-    COMMAND "${PYTHON}" setup.py develop bdist_wheel
+    COMMAND "${PYTHON}" setup.py bdist_wheel
     WORKING_DIRECTORY "${SOURCE_DIR}"
     RESULT_VARIABLE result
     OUTPUT_VARIABLE output

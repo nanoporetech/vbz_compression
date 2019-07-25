@@ -7,10 +7,15 @@
 #include <catch2/catch.hpp>
 
 #include <array>
+#include <numeric>
 #include <random>
+
+static bool plugin_init_result = vbz_register();
 
 template <typename T> void run_linear_test(hid_t type, std::size_t count)
 {
+    (void)plugin_init_result;
+    
     GIVEN("An empty hdf file and a random data set")
     {
         auto file_id = H5Fcreate("./test_file.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -41,6 +46,21 @@ template <typename T> void run_linear_test(hid_t type, std::size_t count)
     }
 }
 
+template<typename T>
+struct UniformIntDistribution {
+    using type = std::uniform_int_distribution<T>;
+};
+template<>
+struct UniformIntDistribution<uint8_t> {
+    // uint8_t isn't a valid parameter for uniform_int_distribution
+    using type = std::uniform_int_distribution<unsigned short>;
+};
+template<>
+struct UniformIntDistribution<int8_t> {
+    // int8_t isn't a valid parameter for uniform_int_distribution
+    using type = std::uniform_int_distribution<short>;
+};
+
 template <typename T> void run_random_test(hid_t type, std::size_t count)
 {
     GIVEN("An empty hdf file and a random data set")
@@ -52,10 +72,11 @@ template <typename T> void run_random_test(hid_t type, std::size_t count)
 
         std::random_device rd;
         std::default_random_engine random_engine(rd());
-        std::uniform_int_distribution<T> dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+        using Distribution = typename UniformIntDistribution<T>::type;
+        Distribution dist(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
         for (auto& elem : data)
         {
-            elem = dist(random_engine);
+            elem = T(dist(random_engine));
         }
 
         WHEN("Inserting filtered data into file")
@@ -107,7 +128,6 @@ SCENARIO("Using zstd filter on a uint16 dataset")
     run_linear_test<std::uint16_t>(H5T_NATIVE_UINT16, 100);
     run_random_test<std::uint16_t>(H5T_NATIVE_UINT16, 10 * 1000 * 1000);
 }
-
 
 SCENARIO("Using zstd filter on a uint32 dataset")
 {

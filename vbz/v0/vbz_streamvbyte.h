@@ -5,11 +5,15 @@
 
 #include <cstddef>
 
+// Version 1 of streamvbyte
+//
+// This method follows streamvbyte exactly.
+
 /// \brief find the maximum size a compressed data stream
 /// using streamvbyte compression could be.
 /// \param integer_size     The input integer size in bytes.
 /// \param source_size      The size of the input buffer, in bytes.
-VBZ_EXPORT vbz_size_t vbz_max_streamvbyte_compressed_size(
+VBZ_EXPORT vbz_size_t vbz_max_streamvbyte_compressed_size_v0(
     size_t integer_size,
     vbz_size_t source_size);
 
@@ -21,7 +25,7 @@ VBZ_EXPORT vbz_size_t vbz_max_streamvbyte_compressed_size(
 /// \param integer_size                 Number of bytes per integer
 /// \param use_delta_zig_zag_encoding   Control if the data should be delta-zig-zag encoded before streamvbyte encoding.
 /// \return The number of bytes used to compress data into [destination].
-VBZ_EXPORT vbz_size_t vbz_delta_zig_zag_streamvbyte_compress(
+VBZ_EXPORT vbz_size_t vbz_delta_zig_zag_streamvbyte_compress_v0(
     void const* source,
     vbz_size_t source_size,
     void* destination,
@@ -41,7 +45,7 @@ VBZ_EXPORT vbz_size_t vbz_delta_zig_zag_streamvbyte_compress(
 /// \param use_delta_zig_zag_encoding   Control if the data should be delta-zig-zag encoded before streamvbyte encoding.
 ///                                     (must equal value used to compress).
 /// \return The number of bytes used to decompress data into [destination].
-VBZ_EXPORT vbz_size_t vbz_delta_zig_zag_streamvbyte_decompress(
+VBZ_EXPORT vbz_size_t vbz_delta_zig_zag_streamvbyte_decompress_v0(
     void const* source,
     vbz_size_t source_size,
     void* destination,

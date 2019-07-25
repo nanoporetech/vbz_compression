@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+#define VBZ_DEFAULT_VERSION 0
+
 typedef uint32_t vbz_size_t;
 
 #define VBZ_ZSTD_ERROR ((vbz_size_t)-1)
@@ -15,7 +17,8 @@ typedef uint32_t vbz_size_t;
 #define VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR ((vbz_size_t)-3)
 #define VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR ((vbz_size_t)-4)
 #define VBZ_STREAMVBYTE_STREAM_ERROR ((vbz_size_t)-5)
-#define VBZ_FIRST_ERROR VBZ_STREAMVBYTE_STREAM_ERROR
+#define VBZ_VERSION_ERROR ((vbz_size_t)-6)
+#define VBZ_FIRST_ERROR VBZ_VERSION_ERROR
 
 struct CompressionOptions
 {
@@ -29,17 +32,25 @@ struct CompressionOptions
     // Should be one of 1, 2 or 4.
     // Using a level of 1 will cause no variable integer encoding
     // to be performed.
-    int integer_size;
+    unsigned int integer_size;
     // zstd compression to apply.
     // Should be in the range "ZSTD_minCLevel" to "ZSTD_maxCLevel".
     // 1 gives the best performance and still provides a sensible compression
     // higher numbers use more CPU time for higher compression ratios.
     // Passing 0 will cause zstd to not be applied to data.
-    int zstd_compression_level;
+    unsigned int zstd_compression_level;
+
+    // version of vbz to apply.
+    // Should be initialised to 'VBZ_DEFAULT_VERSION' for the best, newest compression.
+    // of set to older values to decompress older streams.
+    unsigned int vbz_version;
 };
 
 /// \brief Find if a return value from a function is an error value.
 VBZ_EXPORT bool vbz_is_error(vbz_size_t result_value);
+
+/// \brief Find a string description for an error value
+VBZ_EXPORT char const* vbz_error_string(vbz_size_t error_value);
 
 /// \brief Find a theoretical max size for compressed output size.
 ///        should be used to find the size of the destination buffer to allocate.

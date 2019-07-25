@@ -1,7 +1,9 @@
 find_package(GoogleBenchmark)
 
 add_executable(vbz_perf_test
-    vbz_perf.cpp)
+    vbz_perf.cpp
+)
+add_sanitizers(vbz_perf_test)
 
 target_link_libraries(vbz_perf_test
     PRIVATE

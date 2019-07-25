@@ -7,7 +7,7 @@ Python bindings for `libvbz`.
 Python wheels are provided with each [release](https://github.com/nanoporetech/vbz_compression/releases) and can be install with with `pip`.
 
 ```
-$ pip install https://github.com/nanoporetech/vbz_compression/releases/download/v0.9.3/pyvbz-0.9.3-cp35-cp35m-linux_x86_64.whl
+$ pip install https://github.com/nanoporetech/vbz_compression/releases/download/v1.0.0/pyvbz-1.0.0-cp35-cp35m-linux_x86_64.whl
 ```
 
 ## Example

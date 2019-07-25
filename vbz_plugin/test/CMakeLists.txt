@@ -2,6 +2,7 @@ add_executable(vbz_hdf_plugin_test
     vbz_hdf_plugin_test.cpp
     main.cpp
 )
+add_sanitizers(vbz_hdf_plugin_test)
 
 set_property(TARGET vbz_hdf_plugin_test PROPERTY CXX_STANDARD 11)
 

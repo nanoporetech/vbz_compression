@@ -16,9 +16,7 @@ project(hdf_plugins
     LANGUAGES CXX
 )
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
 include(GenerateExportHeader)
@@ -33,9 +31,34 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "${_bt_docstring}" FORCE)
 endif()
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-option(ENABLE_CONAN "Enable conan for dependency installation" ON)
+if (NOT DEFINED VBZ_BUILD_ARCHIVE)
+    option(VBZ_BUILD_ARCHIVE "Build vbz release as an single archive" OFF)
+endif()
+
+if (NOT DEFINED ENABLE_PYTHON)
+    option(ENABLE_PYTHON "Build python wheel" ON)
+endif()
+
+if (NOT DEFINED ENABLE_PACKAGING)
+    option(ENABLE_PACKAGING "Enable packaging support" ON)
+endif()
+
+if (NOT DEFINED ENABLE_PERF_TESTING)
+    option(ENABLE_PERF_TESTING "Enable performance tests" ON)
+endif()
+
+if (NOT DEFINED ENABLE_CONAN)
+    option(ENABLE_CONAN "Enable conan for dependency installation" ON)
+endif()
+
+if (NOT VBZ_BUILD_ARCHIVE)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
+
 if (ENABLE_CONAN)
     #
     # Dependencies: Conan
@@ -62,49 +85,122 @@ if (ENABLE_CONAN)
 
         conan_cmake_run(CONANFILE conanfile.txt ${_extra_args})
     endif()
-    # Don't use conan_basic_setup() - half of what it does conflicts with or duplicates ONTSettings.
-    # TODO: revisit this decision: it could be good to force the flags to match how depenencies were
-    # built. Might also be useful for anything using MinKNOW-Core code (eg: VolTRAX).
     conan_check_compiler()
-    #conan_set_find_library_paths()
     conan_define_targets()
     conan_set_find_paths()
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        message(STATUS "Linking conan debug libraries")
-        set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CONAN_CMAKE_MODULE_PATH_DEBUG})
-    else()
-        message(STATUS "Linking conan release libraries")
-        set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CONAN_CMAKE_MODULE_PATH_RELEASE})
-    endif()
 endif()
 
-include(packaging/hdf_plugin_packaging.cmake)
+if (ENABLE_PACKAGING)
+    include(packaging/hdf_plugin_packaging.cmake)
+endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/third_party")
 
 find_package(HDF5 1.8.16)
-find_package(zstd 1.3.4 REQUIRED)
+find_package(zstd 1.3.3 REQUIRED)
+find_package(Sanitizers)
 
 get_filename_component(STREAMVBYTE_SOURCE_DIR
     third_party/streamvbyte
     ABSOLUTE
 )
 set(STREAMVBYTE_INSTALL_DIR "${CMAKE_BINARY_DIR}/streamvbyte_lib/")
+set(STREAMVBYTE_PREFIX ${CMAKE_BINARY_DIR}/streamvbyte)
+set(STREAMVBYTE_STATIC_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}streamvbyte_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(STREAMVBYTE_STATIC_LIB_SUBDIR ".")
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if (is_multi_config)
+    set(STREAMVBYTE_STATIC_LIB_SUBDIR "$<CONFIG>")
+endif()
 ExternalProject_Add(
     streamvbyte
     SOURCE_DIR ${STREAMVBYTE_SOURCE_DIR}
     UPDATE_DISCONNECTED TRUE
-    PREFIX ${CMAKE_BINARY_DIR}/streamvbyte
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR}
+    PREFIX ${STREAMVBYTE_PREFIX}
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR} -DSTREAMVBYTE_DISABLE_NATIVE=ON
+    # We need to tell CMake about libraries we will link to, otherwise some generators (eg: Ninja)
+    # complain about how knowing how to build libstreamvbyte_static.a, for example.
+    # Ideally, we'd set a hypothetical INSTALL_BYPRODUCTS, and link to the installed file, but that
+    # doesn't seem to be an option.
+    BUILD_BYPRODUCTS "<BINARY_DIR>/${STREAMVBYTE_STATIC_LIB_NAME}"
 )
-if (NOT WIN32)
-	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/libstreamvbyte_static.a)
-else()
-	set(STREAMVBYTE_STATIC_LIB ${STREAMVBYTE_INSTALL_DIR}/lib/streamvbyte_static.lib)
+ExternalProject_Get_Property(streamvbyte BINARY_DIR)
+set(STREAMVBYTE_STATIC_LIB "${BINARY_DIR}/${STREAMVBYTE_STATIC_LIB_SUBDIR}/${STREAMVBYTE_STATIC_LIB_NAME}")
+
+
+########################################################################
+#
+# Warnings
+#
+########################################################################
+
+if (MSVC)
+    add_compile_options(
+        # Level 3 warnings, as errors
+        /W3 /WX
+
+        ##
+        ## Disable warnings:
+        ##
+
+        # C4251: A base class or structure must be declared with the __declspec(dllexport) keyword
+        #        for a function in a derived class to be exported.
+        #
+        # Happens when using STL types as members of a class tagged with WHATEVER_EXPORT. Since we
+        # don't care about our DLLs maintaining compatibility with other versions of the CRT
+        # (Microsoft's C Runtime Library), this is just noise.
+        /wd4251
+
+        # C4275: An exported class was derived from a class that was not exported.
+        #
+        # Very similar to C4251, but for inheritance rather than members. Again, just noise for us.
+        /wd4275
+
+        # C4373: '%$S': virtual function overrides '%$pS', previous versions of the compiler did not
+        #        override when parameters only differed by const/volatile qualifiers
+        #
+        # The current behaviour (virtuals are overridden when their arguments differ only in
+        # constness) is what you'd expect - the warning only exists because VS 2008 and earlier had
+        # *different* behaviour. Since we never used VS 2008, this warning isn't useful to us.
+        /wd4373
+
+        ##
+        ## Enable additional warnings:
+        ##
+
+        # C5038: data member 'member1' will be initialized after data member 'member2'
+        #
+        # Enable warning about incorrect order of initialisation in classes.
+        # Matches clang warnings which are enabled on the build server.
+        /w35038
+        )
+    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
+        # MSVC's standard library warns about a lot of "insecure" code by default (eg: unchecked
+        # iterators). However, the recommended replacements are not cross-platform, so aren't really
+        # an option for us.
+        _SCL_SECURE_NO_WARNINGS
+        )
+elseif (CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(
+        # "All" warnings as errors
+        -Wall -Wextra -Werror
+
+        # Unused parameters are too common (and unimportant) to warn about
+        -Wno-unused-parameter
+        # Missing field init warning is too general to be useful in C++ code
+        -Wno-missing-field-initializers
+        # boost::optional triggers this on release builds
+        -Wno-maybe-uninitialized
+        )
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang") # AppleClang and Clang
+    add_compile_options(
+        # "All" warnings as errors
+        -Wall -Werror
+        )
 endif()
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-add_subdirectory(python)
+if (ENABLE_PYTHON)
+    add_subdirectory(python)
+endif()
 add_subdirectory(vbz)
 add_subdirectory(vbz_plugin)

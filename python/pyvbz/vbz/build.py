@@ -31,8 +31,9 @@ typedef uint32_t vbz_size_t;
 
 typedef struct {
     bool perform_delta_zig_zag;
-    int integer_size;
-    int zstd_compression_level;
+    unsigned int integer_size;
+    unsigned int zstd_compression_level;
+    unsigned int vbz_version;
 } CompressionOptions;
 
 bool vbz_is_error(vbz_size_t result_value);

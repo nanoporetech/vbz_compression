@@ -1,4 +1,5 @@
-#include "vbz_streamvbyte.h"
+#include "v0/vbz_streamvbyte.h"
+#include "v1/vbz_streamvbyte.h"
 
 #include <gsl/gsl>
 #include <zstd.h>
@@ -49,14 +50,40 @@ bool vbz_is_error(vbz_size_t result_value)
     return result_value >= VBZ_FIRST_ERROR;
 }
 
+char const* vbz_error_string(vbz_size_t error_value)
+{
+    if (VBZ_ZSTD_ERROR == error_value) return "VBZ_ZSTD_ERROR";
+    if (VBZ_STREAMVBYTE_INPUT_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_INPUT_SIZE_ERROR";
+    if (VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR";
+    if (VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR";
+    if (VBZ_STREAMVBYTE_STREAM_ERROR == error_value) return "VBZ_STREAMVBYTE_STREAM_ERROR";
+    if (VBZ_VERSION_ERROR == error_value) return "VBZ_VERSION_ERROR";
+
+    return "VBZ_UNKNOWN_ERROR";
+}
+
 vbz_size_t vbz_max_compressed_size(
     vbz_size_t source_size,
     CompressionOptions const* options)
 {
     vbz_size_t max_size = source_size;
-    if (options->integer_size != 1 || options->perform_delta_zig_zag)
+    if (options->integer_size != 0 || options->perform_delta_zig_zag)
     {
-        max_size = vbz_size_t(vbz_max_streamvbyte_compressed_size(options->integer_size, max_size));
+        auto size_fn = vbz_max_streamvbyte_compressed_size_v0;
+        if (options->vbz_version == 1)
+        {
+            size_fn = vbz_max_streamvbyte_compressed_size_v1;
+        }
+        else if (options->vbz_version != 0)
+        {
+            return VBZ_VERSION_ERROR;
+        }
+        
+        max_size = vbz_size_t(size_fn(options->integer_size, max_size));
+        if (vbz_is_error(max_size))
+        {
+            return max_size;
+        }
     }
 
     if (options->zstd_compression_level != 0)
@@ -78,7 +105,7 @@ vbz_size_t vbz_compress(
     auto current_source = make_data_buffer(source, source_size);
     auto dest_buffer = make_data_buffer(destination, destination_capacity);
 
-    if (options->zstd_compression_level == 0 && options->integer_size == 1)
+    if (options->zstd_compression_level == 0 && options->integer_size == 0)
     {
         copy_buffer(current_source, dest_buffer);
         return source_size;
@@ -88,12 +115,26 @@ vbz_size_t vbz_compress(
     // duration of call.
     std::unique_ptr<void, free_delete> intermediate_storage;
     
-    if (options->integer_size != 1)
+    if (options->integer_size != 0)
     {
-        auto max_stream_v_byte_size = vbz_max_streamvbyte_compressed_size(
+        auto size_fn = vbz_max_streamvbyte_compressed_size_v0;
+        if (options->vbz_version == 1)
+        {
+            size_fn = vbz_max_streamvbyte_compressed_size_v1;
+        }
+        else if (options->vbz_version != 0)
+        {
+            return VBZ_VERSION_ERROR;
+        }
+        
+        auto max_stream_v_byte_size = size_fn(
             options->integer_size,
             vbz_size_t(current_source.size())
         );
+        if (vbz_is_error(max_stream_v_byte_size))
+        {
+            return max_stream_v_byte_size;
+        }
         
         auto streamvbyte_dest = dest_buffer;
         if (options->zstd_compression_level != 0)
@@ -106,7 +147,17 @@ vbz_size_t vbz_compress(
             assert(max_stream_v_byte_size <= destination_capacity);
         }
 
-        auto compressed_size = vbz_delta_zig_zag_streamvbyte_compress(
+        auto compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v0;
+        if (options->vbz_version == 1)
+        {
+            compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v1;
+        }
+        else if (options->vbz_version != 0)
+        {
+            return VBZ_VERSION_ERROR;
+        }
+        
+        auto compressed_size = compress_fn(
             current_source.data(),
             vbz_size_t(current_source.size()),
             streamvbyte_dest.data(),
@@ -135,6 +186,7 @@ vbz_size_t vbz_compress(
     {
         return VBZ_ZSTD_ERROR;
     }
+
     
     return vbz_size_t(compressed_size);
 }
@@ -150,7 +202,7 @@ vbz_size_t vbz_decompress(
     auto dest_buffer = make_data_buffer(destination, destination_size);
 
     // If nothing is enabled, just do a copy between buffers and return.
-    if (options->zstd_compression_level == 0 && options->integer_size == 1)
+    if (options->zstd_compression_level == 0 && options->integer_size == 0)
     {
         copy_buffer(current_source, dest_buffer);
         return source_size;
@@ -162,12 +214,17 @@ vbz_size_t vbz_decompress(
     
     if (options->zstd_compression_level != 0)
     {
-        auto max_zstd_decompressed_size = vbz_size_t(ZSTD_getFrameContentSize(source, source_size));
+        auto max_zstd_decompressed_size = ZSTD_getFrameContentSize(source, source_size);
+        if (ZSTD_isError(max_zstd_decompressed_size))
+        {
+            return VBZ_ZSTD_ERROR;
+        }
+
         auto zstd_dest = dest_buffer;
-        if (options->integer_size != 1)
+        if (options->integer_size != 0)
         {
             intermediate_storage.reset(malloc(max_zstd_decompressed_size));
-            zstd_dest = make_data_buffer(intermediate_storage.get(), max_zstd_decompressed_size);
+            zstd_dest = make_data_buffer(intermediate_storage.get(), (vbz_size_t)max_zstd_decompressed_size);
         }
         else
         {
@@ -187,13 +244,23 @@ vbz_size_t vbz_decompress(
         current_source = make_data_buffer(zstd_dest.data(), vbz_size_t(compressed_size));
     }
 
-    // streamvbyte will only make 1 byte data larger - so skip it.
-    if (options->integer_size == 1)
+    // if streamvbyte is disabled, return early.
+    if (options->integer_size == 0)
     {
         return vbz_size_t(current_source.size());
     }
+
+    auto decompress_fn = vbz_delta_zig_zag_streamvbyte_decompress_v0;
+    if (options->vbz_version == 1)
+    {
+        decompress_fn = vbz_delta_zig_zag_streamvbyte_decompress_v1;
+    }
+    else if (options->vbz_version != 0)
+    {
+        return VBZ_VERSION_ERROR;
+    }
     
-    return vbz_delta_zig_zag_streamvbyte_decompress(
+    return decompress_fn(
         current_source.data(),
         vbz_size_t(current_source.size()),
         dest_buffer.data(),
@@ -238,6 +305,11 @@ vbz_size_t vbz_decompress_sized(
 {
     auto source_buffer = make_data_buffer(source, source_size);
 
+    if (source_buffer.size() < sizeof(VbzSizedHeader))
+    {
+        return VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR;
+    }
+
     // Extract header information
     auto const& source_header = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>()[0];
     if (destination_capacity < source_header.original_size)
@@ -251,7 +323,7 @@ vbz_size_t vbz_decompress_sized(
         src_compressed_data.data(),
         vbz_size_t(src_compressed_data.size()),
         destination,
-        destination_capacity,
+        source_header.original_size,
         options
     );
 }

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pyvbz',
-    version='0.9.3',
+    version='1.0.0',
     url='https://nanoporetech.com',
     author='Oxford Nanopore Technologies, Limited',
     author_email="support@nanoporetech.com",

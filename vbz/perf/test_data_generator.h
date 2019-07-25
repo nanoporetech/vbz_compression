@@ -2,6 +2,8 @@
 
 #include "../test/test_data.h"
 
+#include <gsl/gsl>
+
 #include <numeric>
 #include <random>
 
@@ -56,11 +58,13 @@ private:
             std::vector<T> input_values(length);
             max_element_count = std::max(max_element_count, input_values.size());
 
+
             std::size_t idx = 0;
             for (auto& e : input_values)
             {
-                e = decltype(e)(test_data[idx]);
-                idx = (idx + 1) % (sizeof(test_data)/sizeof(test_data[0]));
+                auto input_data = test_data[idx];
+                e = (T)input_data;
+                idx = (idx + 1) % test_data.size();
             }
 
             results.push_back(input_values);
