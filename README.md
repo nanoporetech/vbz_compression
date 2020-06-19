@@ -72,6 +72,6 @@ Then configure the project using:
 > git submodule update --init
 > mkdir build
 > cd build
-> cmake -D ENABLE_CONAN=OFF ..
+> cmake -D CMAKE_BUILD_TYPE=Release -D ENABLE_CONAN=OFF -D ENABLE_PERF_TESTING=OFF -D ENABLE_PYTHON=OFF ..
 > make -j
 ```

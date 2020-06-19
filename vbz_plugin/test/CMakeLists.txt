@@ -9,7 +9,7 @@ set_property(TARGET vbz_hdf_plugin_test PROPERTY CXX_STANDARD 11)
 target_link_libraries(vbz_hdf_plugin_test
     PUBLIC
         vbz_hdf_plugin
-        HDF5::C
+        ${HDF5_C_LIBRARIES}
         hdf_test_utils
 )
 

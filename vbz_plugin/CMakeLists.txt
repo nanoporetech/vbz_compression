@@ -24,6 +24,19 @@ target_link_libraries(vbz_hdf_plugin
         vbz
 )
 
+if (${CMAKE_CXX_COMPILER_ID} MATCHES "Intel" AND NOT WIN32)
+    target_link_libraries(vbz_hdf_plugin
+        PRIVATE
+        $<$<CXX_COMPILER_ID:Intel>:-static-intel>
+        $<$<CXX_COMPILER_ID:Intel>:-mkl=sequential>
+        $<$<CXX_COMPILER_ID:Intel>:-wd10237>
+        )
+endif()
+
+if (ENABLE_CODE_SIGNING)
+    hdf_add_signing_command(vbz_hdf_plugin)
+endif()
+
 if (WIN32)
     target_compile_definitions(vbz_hdf_plugin
         PRIVATE
@@ -49,9 +62,26 @@ if (NOT VBZ_BUILD_ARCHIVE)
     set(VBZ_PLUGIN_COMPONENT COMPONENT hdf_plugin)
 endif()
 
+set(INSTALL_DESTINATION "hdf5/lib/plugin")
+if (STANDARD_LIB_INSTALL)
+    set(VBZ_PLUGIN_COMPONENT COMPONENT vbz_hdf_plugin)
+    set_target_properties(vbz_hdf_plugin
+        PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        )
+    if(WIN32)
+        set(INSTALL_DESTINATION "bin")
+    else()
+        set(INSTALL_DESTINATION "lib")
+    endif()
+elseif (VBZ_BUILD_ARCHIVE)
+    set(INSTALL_DESTINATION "bin")
+endif()
+
 install(
     TARGETS vbz_hdf_plugin
-    DESTINATION "hdf5/lib/plugin"
+    DESTINATION ${INSTALL_DESTINATION}
     ${VBZ_PLUGIN_COMPONENT}
 )
 

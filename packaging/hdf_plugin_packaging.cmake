@@ -7,7 +7,7 @@ set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 if (NOT VBZ_BUILD_ARCHIVE)
     set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/packaging/readme.txt")
     set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/packaging/readme.txt")
-    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/license.txt")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENCE.txt")
     
     cpack_add_component(
             hdf_plugin

@@ -108,7 +108,7 @@ size_t vbz_filter(
 
     if (cd_nelmts < 3)
     {
-        return -1;
+        return 0;
     }
 
     unsigned int vbz_version = cd_values[FILTER_VBZ_VERSION_OPTION];
@@ -139,7 +139,7 @@ size_t vbz_filter(
         if (input_span.size() > std::numeric_limits<vbz_size_t>::max())
         {
             std::cerr << "vbz_filter: Chunk size too large." << std::endl;
-            return -1;
+            return 0;
         }
 
 #if VBZ_DEBUG
@@ -153,7 +153,7 @@ size_t vbz_filter(
         if (vbz_is_error(expected_uncompressed_size))
         {
             std::cerr << "vbz_filter: size error" << std::endl;
-            return -1;
+            return 0;
         }
         outbuf.reset(h5_malloc(expected_uncompressed_size));
 
@@ -166,13 +166,13 @@ size_t vbz_filter(
         if (vbz_is_error(outbuf_used_size))
         {
             std::cerr << "vbz_filter: compression error" << std::endl;
-            return -1;
+            return 0;
         }
         
         if (outbuf_used_size != expected_uncompressed_size)
         {
             std::cerr << "vbz_filter: decompressed size error" << std::endl;
-            return -1;
+            return 0;
         }
 
 #if VBZ_DEBUG
@@ -188,14 +188,14 @@ size_t vbz_filter(
         if (*buf_size > std::numeric_limits<vbz_size_t>::max())
         {
             std::cerr << "vbz_filter: Chunk size too large." << std::endl;
-            return -1;
+            return 0;
         }
 
         auto const byte_remainder = *buf_size % integer_size;
         if (byte_remainder != 0)
         {
             std::cerr << "vbz_filter: Invalid integer_size specified" << std::endl;
-            return -1;
+            return 0;
         }
 
         outbuf_size = vbz_max_compressed_size(vbz_size_t(*buf_size), &options);
@@ -214,7 +214,7 @@ size_t vbz_filter(
         if (vbz_is_error(outbuf_used_size))
         {
             std::cerr << "vbz_filter: compression error" << std::endl;;
-            return -1;
+            return 0;
         }
 
 #if VBZ_DEBUG

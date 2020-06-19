@@ -7,10 +7,11 @@ set_property(TARGET hdf_test_utils PROPERTY CXX_STANDARD 11)
 
 target_include_directories(hdf_test_utils
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${HDF5_C_INCLUDE_DIRS}
 )
 
 target_link_libraries(hdf_test_utils
     PRIVATE
-        HDF5::C
+        ${HDF5_C_LIBRARIES}
 )

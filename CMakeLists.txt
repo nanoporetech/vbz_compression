@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11.0)
 
 execute_process(
   COMMAND git describe --tags
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_VERSION
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
@@ -13,14 +13,18 @@ set(GIT_VERSION "${CMAKE_MATCH_1}")
 message(STATUS "Building version ${GIT_VERSION}")
 project(hdf_plugins
     VERSION ${GIT_VERSION}
-    LANGUAGES CXX
+    LANGUAGES CXX C
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(ExternalProject)
 include(GenerateExportHeader)
-include(CTest)
+# If we're including hdf_plugins as a subdir then we might not be able
+# to override BUILD_TESTING from CTest's default ON value.
+if (NOT DEFINED BUILD_TESTING OR BUILD_TESTING)
+    include(CTest)
+endif()
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     message(STATUS "No CMAKE_BUILD_TYPE set - defaulting to Debug")
@@ -31,6 +35,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "${_bt_docstring}" FORCE)
 endif()
 
+set(HDF_PLUGIN_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 if (NOT DEFINED VBZ_BUILD_ARCHIVE)
@@ -53,6 +58,17 @@ if (NOT DEFINED ENABLE_CONAN)
     option(ENABLE_CONAN "Enable conan for dependency installation" ON)
 endif()
 
+if (NOT DEFINED STANDARD_LIB_INSTALL)
+    set(STD_LIB_INSTALL_DEFAULT OFF)
+    if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_DIR)
+        set(STD_LIB_INSTALL_DEFAULT ON)
+    endif()
+    option(STANDARD_LIB_INSTALL
+        "Install library to standard lib / bin paths"
+        ${STD_LIB_INSTALL_DEFAULT}
+        )
+endif()
+
 if (NOT VBZ_BUILD_ARCHIVE)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -70,8 +86,21 @@ if (ENABLE_CONAN)
     else()
         include(conan)
 
+        set(_requirements
+            "zstd/1.3.4@nanopore/stable")
+        set(_generators
+            cmake
+            json)
+        set(_imports
+            "bin, *.dll -> ../bin"
+            "lib, *.dylib* -> ../bin")
         set(_extra_args)
 
+        if (ENABLE_PERF_TESTING)
+            list(APPEND _requirements
+                "google-benchmark/1.5@nanopore/stable"
+                )
+        endif()
         if (CMAKE_BUILD_TYPE)
             set(_build_type_DEBUG Debug)
             set(_build_type_RELEASE Release)
@@ -82,8 +111,18 @@ if (ENABLE_CONAN)
                 list(APPEND _extra_args BUILD_TYPE "${_build_type_${_build_type}}")
             endif()
         endif()
+        if (CONAN_EXTRA_SETTINGS)
+            list(APPEND _extra_args
+                SETTINGS
+                ${CONAN_EXTRA_SETTINGS}
+                )
+        endif()
 
-        conan_cmake_run(CONANFILE conanfile.txt ${_extra_args})
+        conan_cmake_run(
+            GENERATORS ${_generators}
+            REQUIRES ${_requirements}
+            IMPORTS ${_imports}
+            ${_extra_args})
     endif()
     conan_check_compiler()
     conan_define_targets()
@@ -94,10 +133,10 @@ if (ENABLE_PACKAGING)
     include(packaging/hdf_plugin_packaging.cmake)
 endif()
 
-include_directories("${CMAKE_SOURCE_DIR}/third_party")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 
 find_package(HDF5 1.8.16)
-find_package(zstd 1.3.3 REQUIRED)
+find_package(zstd 1.3.1 REQUIRED)
 find_package(Sanitizers)
 
 get_filename_component(STREAMVBYTE_SOURCE_DIR
@@ -117,7 +156,7 @@ ExternalProject_Add(
     SOURCE_DIR ${STREAMVBYTE_SOURCE_DIR}
     UPDATE_DISCONNECTED TRUE
     PREFIX ${STREAMVBYTE_PREFIX}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR} -DSTREAMVBYTE_DISABLE_NATIVE=ON
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR} -DSTREAMVBYTE_DISABLE_NATIVE=ON -DSTD_FLAGS="-std=c99"
     # We need to tell CMake about libraries we will link to, otherwise some generators (eg: Ninja)
     # complain about how knowing how to build libstreamvbyte_static.a, for example.
     # Ideally, we'd set a hypothetical INSTALL_BYPRODUCTS, and link to the installed file, but that
@@ -198,6 +237,8 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang") # AppleClang and Clang
         -Wall -Werror
         )
 endif()
+
+include(SigningUtils)
 
 if (ENABLE_PYTHON)
     add_subdirectory(python)

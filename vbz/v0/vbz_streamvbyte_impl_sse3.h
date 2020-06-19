@@ -3,7 +3,11 @@
 #include <cstring>
 #include <iostream>
 
+#if (defined __INTEL_COMPILER) && (defined WIN32)
+#include <intrin.h>
+#else
 #include <x86intrin.h>
+#endif
 
 // See: https://github.com/lemire/streamvbyte
 static const uint8_t encode_shuf_lut[64*16] = {

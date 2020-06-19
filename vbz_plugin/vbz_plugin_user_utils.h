@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hdf5.h>
+#include "vbz_plugin.h"
 
 #define FILTER_VBZ_VERSION 1
 

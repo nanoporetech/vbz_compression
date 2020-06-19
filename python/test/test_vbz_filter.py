@@ -10,7 +10,7 @@ class TestVbzFilter(unittest.TestCase):
     VBZ_VERISON = 0
 
     def test_simple_range(self):
-        original_data = numpy.array(range(1, 100), dtype="i2")
+        original_data = numpy.arange(1, 100, dtype="i2")
 
         with  h5py.File("test_file.h5", "w") as f:
             f.create_dataset("bar", compression=32020, compression_opts=(self.VBZ_VERISON, 2, 1, 1), data=original_data)
