@@ -5,9 +5,10 @@
 #include "streamvbyte.h"
 #include "streamvbyte_zigzag.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 #include <cassert>
+#include <vector>
 
 #ifdef _MSC_VER
 # define VBZ_RESTRICT __restrict
@@ -224,14 +225,14 @@ struct StreamVByteWorkerV1
         
         if (!UseZigZag)
         {
-            cast(gsl::make_span(intermediate_buffer), gsl::make_span(output));
+            cast(gsl::make_span(intermediate_buffer), output);
             return vbz_size_t(output.size() * sizeof(T));
         }
         
         std::vector<std::int32_t> output_buffer(output.size());
         zigzag_delta_decode(intermediate_buffer.data(), output_buffer.data(), output_buffer.size(), 0);
         
-        cast(gsl::make_span(output_buffer), gsl::make_span(output));
+        cast(gsl::make_span(output_buffer), output);
         return vbz_size_t(output.size() * sizeof(T));
     }
     

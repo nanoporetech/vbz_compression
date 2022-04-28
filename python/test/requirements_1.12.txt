@@ -1,0 +1,2 @@
+# Originally built against Python 3.9
+h5py==3.6.0

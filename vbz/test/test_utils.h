@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 #include <iostream>
 

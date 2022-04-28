@@ -1,1 +1,4 @@
-h5py==2.9.0
+# h5py 2 support was dropped in Python 3.9
+h5py==2.10.0
+# numpy 1.18.5 is the last version that supports Python 3.5
+numpy==1.18.5

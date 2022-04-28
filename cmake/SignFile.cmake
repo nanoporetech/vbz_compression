@@ -24,7 +24,8 @@ elseif(WIN32)
 
     message("Signing file... ${file_to_sign}${comment}")
     set(SIGN_COMMAND ${SIGNTOOL_EXE} sign "/v" "/sha1" "${MINKNOW_CODE_SIGN_IDENTITY}"
-        "/t" "http://timestamp.globalsign.com/scripts/"
+        "/tr" "http://rfc3161timestamp.globalsign.com/advanced"
+        "/td" "SHA256"
         ${file_to_sign}
     )
 
@@ -32,13 +33,26 @@ else()
     message(FATAL_ERROR "Cannot sign code on this platform.")
 endif()
 
-message("Running sign command: ${SIGN_COMMAND}")
-execute_process(
-    COMMAND ${SIGN_COMMAND}
-    RESULT_VARIABLE result
-    OUTPUT_VARIABLE output
-    ERROR_VARIABLE output
-)
+set(retry_count 10)
+foreach(retry_index RANGE ${retry_count})
+    message("Running sign command: ${SIGN_COMMAND}")
+    execute_process(
+        COMMAND ${SIGN_COMMAND}
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE output
+        ERROR_VARIABLE output
+    )
+
+    if (result EQUAL 0)
+        break()
+    endif()
+
+    message(WARN "Signing failed, waiting and retrying (${retry_index}/${retry_count})")
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E sleep 5
+    )
+
+endforeach()
 
 if (NOT result EQUAL 0)
     message(FATAL_ERROR "Could not sign file: ${result}: ${output}")

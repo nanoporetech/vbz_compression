@@ -1,5 +1,5 @@
 
-add_library(vbz_hdf_plugin SHARED
+add_library(vbz_hdf_plugin
     vbz_plugin_user_utils.h
     vbz_plugin.cpp
     vbz_plugin.h
@@ -9,6 +9,16 @@ add_sanitizers(vbz_hdf_plugin)
 generate_export_header(vbz_hdf_plugin EXPORT_FILE_NAME vbz_plugin/vbz_hdf_plugin_export.h)
 
 set_property(TARGET vbz_hdf_plugin PROPERTY CXX_STANDARD 11)
+
+if(WIN32 AND HDF5_USE_STATIC_LIBRARIES)
+    # See vbz_plugin.cpp -- if also building with Python on Windows then the runtime
+    # used is determined by that Python version, so we only support dynamic builds.
+    if(ENABLE_PYTHON)
+        message(FATAL_ERROR "Cannot enable HDF5_USE_STATIC_LIBRARIES as well as ENABLE_PYTHON")
+    else()
+        add_definitions(-DHDF5_USE_STATIC_LIBRARIES)
+    endif()
+endif()
 
 target_include_directories(
     vbz_hdf_plugin

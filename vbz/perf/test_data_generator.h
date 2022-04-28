@@ -2,7 +2,7 @@
 
 #include "../test/test_data.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 #include <numeric>
 #include <random>

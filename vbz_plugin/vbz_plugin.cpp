@@ -2,7 +2,7 @@
 #include "vbz_plugin.h"
 #include "vbz.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <hdf5/hdf5_plugin_types.h>
 
 #include <array>
@@ -32,7 +32,7 @@ int checksum(gsl::span<char const> input)
 }
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(HDF5_USE_STATIC_LIBRARIES)
 HMODULE get_hdf_module()
 {
     static HMODULE module = nullptr;
@@ -64,7 +64,7 @@ HMODULE get_hdf_module()
 //
 void* h5_malloc(std::size_t size)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(HDF5_USE_STATIC_LIBRARIES)
     static auto module = get_hdf_module();
 
     static auto malloc_memory = (void*(*)(size_t, bool))GetProcAddress(module, "H5allocate_memory");
@@ -76,7 +76,7 @@ void* h5_malloc(std::size_t size)
 
 void h5_free(void* memory)
 {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(HDF5_USE_STATIC_LIBRARIES)
     static auto module = get_hdf_module();
 
     static auto free_hdf5 = (int(*)(void *))GetProcAddress(module, "H5free_memory");

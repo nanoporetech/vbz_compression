@@ -31,7 +31,9 @@ add_dependencies(vbz
     streamvbyte
 )
 
-if (WIN32 OR APPLE OR "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "x86_64")
+if (WIN32 OR 
+    (APPLE AND NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64") OR
+    "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "x86_64")
     if(NOT MSVC)
         target_compile_options(vbz PRIVATE -mssse3)
     endif()

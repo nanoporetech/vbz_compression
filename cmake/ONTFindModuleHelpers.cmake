@@ -172,6 +172,9 @@ macro(ont_find_package_handle_library_components module_name)
     if(NOT _ONT_FPWC_SKIP_PKG_CONFIG)
         find_package(PkgConfig QUIET)
     endif()
+    # CMake 3.17+ warns when find_package_handle_standard_args() is called with a name that doesn't
+    # match the find module name; this tells it that we really did mean to do that
+    set(FPHSA_NAME_MISMATCHED TRUE)
     foreach(_comp ${_ONT_FPWC_COMPONENTS})
         set(_dep_vars)
         set(_dep_targets)
@@ -290,6 +293,8 @@ macro(ont_find_package_handle_library_components module_name)
                         "${module_name}::${_comp}")
         endif()
     endforeach()
+    # we need to unset it again because this is a macro, not a function
+    unset(FPHSA_NAME_MISMATCHED)
     if(${module_name}_DEBUG_LIBRARIES)
         list(REMOVE_DUPLICATES ${module_name}_DEBUG_LIBRARIES)
     endif()

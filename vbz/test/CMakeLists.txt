@@ -9,9 +9,12 @@ add_sanitizers(vbz_test)
 
 set_property(TARGET vbz_test PROPERTY CXX_STANDARD 11)
 
+find_package( Threads )
+
 target_link_libraries(vbz_test
     PUBLIC
         vbz
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 add_test(

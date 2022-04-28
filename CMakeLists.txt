@@ -17,6 +17,7 @@ project(hdf_plugins
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_STANDARD 14)
 
 include(ExternalProject)
 include(GenerateExportHeader)
@@ -75,6 +76,8 @@ if (NOT VBZ_BUILD_ARCHIVE)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 endif()
 
+option(BUILD_SHARED_LIBS "Build shared library for VBZ plugin" ON)
+
 if (ENABLE_CONAN)
     #
     # Dependencies: Conan
@@ -87,7 +90,7 @@ if (ENABLE_CONAN)
         include(conan)
 
         set(_requirements
-            "zstd/1.3.4@nanopore/stable")
+            "zstd/1.4.8@nanopore/stable")
         set(_generators
             cmake
             json)
@@ -111,10 +114,14 @@ if (ENABLE_CONAN)
                 list(APPEND _extra_args BUILD_TYPE "${_build_type_${_build_type}}")
             endif()
         endif()
+        if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            list(APPEND CONAN_EXTRA_SETTINGS "compiler.cppstd=${CMAKE_CXX_STANDARD}")
+        endif()
         if (CONAN_EXTRA_SETTINGS)
             list(APPEND _extra_args
                 SETTINGS
                 ${CONAN_EXTRA_SETTINGS}
+                BUILD missing
                 )
         endif()
 

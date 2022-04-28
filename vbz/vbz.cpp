@@ -1,7 +1,7 @@
 #include "v0/vbz_streamvbyte.h"
 #include "v1/vbz_streamvbyte.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <zstd.h>
 
 #include <cassert>

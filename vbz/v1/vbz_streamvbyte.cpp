@@ -3,7 +3,7 @@
 #include "../v0/vbz_streamvbyte_impl.h" // for 4 byte case
 #include "vbz.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 vbz_size_t vbz_max_streamvbyte_compressed_size_v1(
     std::size_t integer_size,

@@ -1,6 +1,8 @@
 find_path(ZSTD_INCLUDE_DIR
     NAMES zstd.h
-    PATHS ${CONAN_INCLUDE_DIRS_RELEASE}
+    PATHS
+        ${CONAN_INCLUDE_DIRS_RELEASE}
+        ${CONAN_INCLUDE_DIRS_DEBUG}
 )
 
 set(ZSTD_NAMES zstd zstd_static)
@@ -11,7 +13,9 @@ find_library(ZSTD_LIBRARY_RELEASE
     PATHS ${CONAN_LIB_DIRS_RELEASE}
 )
 find_library(ZSTD_LIBRARY_DEBUG
-    NAMES ${ZSTD_NAMES_DEBUG}
+    NAMES
+        ${ZSTD_NAMES_DEBUG}
+        ${ZSTD_NAMES}
     PATHS ${CONAN_LIB_DIRS_DEBUG}
 )
 
