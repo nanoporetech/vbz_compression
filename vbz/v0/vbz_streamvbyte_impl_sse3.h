@@ -365,7 +365,7 @@ inline static std::size_t scalar_to_zig_zag(gsl::span<std::int16_t const> input,
     for (std::size_t i = 0; i < size; ++i)
     {
         T const delta = input[i] - last_value;
-        output[i] = (delta << 1) ^ (delta >> shift_size);
+        output[i] = (delta * 2) ^ (delta >> shift_size);
         last_value = input[i];
     }
     return size;
@@ -457,7 +457,7 @@ struct StreamVByteWorkerV0<std::int16_t, true>
             uint32_t dw = final_elements[i];
             uint32_t symbol = (dw > 0x000000FF) + (dw > 0x0000FFFF) + (dw > 0x00FFFFFF);
             key |= symbol << (i + i);
-            *((uint32_t*)dataPtr) = dw;
+            memcpy(dataPtr, &dw, sizeof(dw));
             dataPtr += 1 + symbol;
         }
         memcpy(keyPtr, &key, ((size & 7) + 3) >> 2);

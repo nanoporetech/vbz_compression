@@ -1,0 +1,41 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-merge-conflict
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: ["--profile", "black", "--filter-files"]
+  - repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+      - id: black
+        name: black (python)
+        args:
+          - '--target-version=py37'
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        name: flake8 (python)
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.4'
+    hooks:
+    - id: bandit
+      name: bandit (python)
+      args: ["-c", ".bandit-profile.yml"]
+
+# NB: by default, pre-commit only installs the pre-commit hook ("commit" stage),
+# but you can tell `pre-commit install` to install other hooks.
+# This set of default stages ensures we don't slow down or break other git operations
+# even if you install hooks for them.
+default_stages:
+  - commit
+  - merge-commit
+  - manual

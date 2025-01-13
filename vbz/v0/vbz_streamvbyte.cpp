@@ -10,7 +10,7 @@ vbz_size_t vbz_max_streamvbyte_compressed_size_v0(
 {
     if (source_size % integer_size != 0)
     {
-        return VBZ_STREAMVBYTE_INPUT_SIZE_ERROR;
+        return VBZ_INPUT_SIZE_ERROR;
     }
 
     auto int_count = source_size / integer_size;
@@ -27,7 +27,7 @@ vbz_size_t vbz_delta_zig_zag_streamvbyte_compress_v0(
 {
     if (source_size % integer_size != 0)
     {
-        return VBZ_STREAMVBYTE_INPUT_SIZE_ERROR;
+        return VBZ_INPUT_SIZE_ERROR;
     }
     
     auto const input_span = gsl::make_span(static_cast<char const*>(source), source_size);
@@ -58,7 +58,7 @@ vbz_size_t vbz_delta_zig_zag_streamvbyte_compress_v0(
             }
         }
         default:
-            return VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR;
+            return VBZ_INTEGER_SIZE_ERROR;
     }
 }
 
@@ -72,7 +72,7 @@ vbz_size_t vbz_delta_zig_zag_streamvbyte_decompress_v0(
 {
     if (destination_size % integer_size != 0)
     {
-        return VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR;
+        return VBZ_DESTINATION_SIZE_ERROR;
     }
     
     auto const input_span = gsl::make_span(static_cast<char const*>(source), source_size);
@@ -103,6 +103,6 @@ vbz_size_t vbz_delta_zig_zag_streamvbyte_decompress_v0(
             }
         }
         default:
-            return VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR;
+            return VBZ_INTEGER_SIZE_ERROR;
     }
 }

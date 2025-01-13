@@ -1,0 +1,13 @@
+[flake8]
+# This matches black's line length.
+max-line-length = 88 
+
+extend-ignore = E203, W293, E402
+
+; E203, # whitespace before : is not PEP8 compliant (& conflicts with black)
+; W293, # blank line contains whitespace (in docstrings currently not fixed by black)
+; E402, # module level import not at top of file
+
+# E - Pep8 error
+# F - pyflake failure
+# W - Pep8 warning

@@ -17,7 +17,7 @@ project(hdf_plugins
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 include(ExternalProject)
 include(GenerateExportHeader)
@@ -90,9 +90,9 @@ if (ENABLE_CONAN)
         include(conan)
 
         set(_requirements
-            "zstd/1.4.8@nanopore/stable")
+            "zstd/1.4.8@")
         set(_generators
-            cmake
+            cmake_find_package
             json)
         set(_imports
             "bin, *.dll -> ../bin"
@@ -101,7 +101,7 @@ if (ENABLE_CONAN)
 
         if (ENABLE_PERF_TESTING)
             list(APPEND _requirements
-                "google-benchmark/1.5@nanopore/stable"
+                "benchmark/1.5.6@"
                 )
         endif()
         if (CMAKE_BUILD_TYPE)
@@ -114,7 +114,7 @@ if (ENABLE_CONAN)
                 list(APPEND _extra_args BUILD_TYPE "${_build_type_${_build_type}}")
             endif()
         endif()
-        if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
             list(APPEND CONAN_EXTRA_SETTINGS "compiler.cppstd=${CMAKE_CXX_STANDARD}")
         endif()
         if (CONAN_EXTRA_SETTINGS)
@@ -129,6 +129,7 @@ if (ENABLE_CONAN)
             GENERATORS ${_generators}
             REQUIRES ${_requirements}
             IMPORTS ${_imports}
+            UPDATE
             ${_extra_args})
     endif()
     conan_check_compiler()
@@ -141,6 +142,10 @@ if (ENABLE_PACKAGING)
 endif()
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third_party")
+if (NOT APPLE)
+	list(PREPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
+	list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
+endif()
 
 find_package(HDF5 1.8.16)
 find_package(zstd 1.3.1 REQUIRED)
@@ -152,7 +157,7 @@ get_filename_component(STREAMVBYTE_SOURCE_DIR
 )
 set(STREAMVBYTE_INSTALL_DIR "${CMAKE_BINARY_DIR}/streamvbyte_lib/")
 set(STREAMVBYTE_PREFIX ${CMAKE_BINARY_DIR}/streamvbyte)
-set(STREAMVBYTE_STATIC_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}streamvbyte_static${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(STREAMVBYTE_STATIC_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}streamvbyte${CMAKE_STATIC_LIBRARY_SUFFIX})
 set(STREAMVBYTE_STATIC_LIB_SUBDIR ".")
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (is_multi_config)
@@ -163,12 +168,17 @@ ExternalProject_Add(
     SOURCE_DIR ${STREAMVBYTE_SOURCE_DIR}
     UPDATE_DISCONNECTED TRUE
     PREFIX ${STREAMVBYTE_PREFIX}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR} -DSTREAMVBYTE_DISABLE_NATIVE=ON -DSTD_FLAGS="-std=c99"
+    CMAKE_ARGS
+        -D CMAKE_INSTALL_PREFIX=${STREAMVBYTE_INSTALL_DIR}
+        -D CMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+        -D CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+        -D STREAMVBYTE_SANITIZE=${SANITIZE_ADDRESS}
+        -D STREAMVBYTE_SANITIZE_UNDEFINED=${SANITIZE_UNDEFINED}
     # We need to tell CMake about libraries we will link to, otherwise some generators (eg: Ninja)
     # complain about how knowing how to build libstreamvbyte_static.a, for example.
     # Ideally, we'd set a hypothetical INSTALL_BYPRODUCTS, and link to the installed file, but that
     # doesn't seem to be an option.
-    BUILD_BYPRODUCTS "<BINARY_DIR>/${STREAMVBYTE_STATIC_LIB_NAME}"
+    BUILD_BYPRODUCTS "<BINARY_DIR>/${STREAMVBYTE_STATIC_LIB_SUBDIR}/${STREAMVBYTE_STATIC_LIB_NAME}"
 )
 ExternalProject_Get_Property(streamvbyte BINARY_DIR)
 set(STREAMVBYTE_STATIC_LIB "${BINARY_DIR}/${STREAMVBYTE_STATIC_LIB_SUBDIR}/${STREAMVBYTE_STATIC_LIB_NAME}")
@@ -220,13 +230,18 @@ if (MSVC)
         # Matches clang warnings which are enabled on the build server.
         /w35038
         )
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Intel oneAPI
+        add_compile_options(
+            -Wno-unused-command-line-argument # errors on -Qstd=c++11 as this isn't an option for MSVC
+            )
+        endif()
     set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
         # MSVC's standard library warns about a lot of "insecure" code by default (eg: unchecked
         # iterators). However, the recommended replacements are not cross-platform, so aren't really
         # an option for us.
         _SCL_SECURE_NO_WARNINGS
         )
-elseif (CMAKE_COMPILER_IS_GNUCXX)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(
         # "All" warnings as errors
         -Wall -Wextra -Werror

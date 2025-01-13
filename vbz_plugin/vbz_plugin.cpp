@@ -98,7 +98,7 @@ size_t vbz_filter(
     unsigned flags,
     size_t cd_nelmts,
     const unsigned int cd_values[],
-    size_t nbytes,
+    [[maybe_unused]]size_t nbytes,
     size_t* buf_size,
     void** buf)
 {

@@ -6,8 +6,7 @@ __version__ = "0.9.3"
 
 
 import numpy as np
-
-from _vbz import lib, ffi
+from _vbz import ffi, lib
 
 
 def compression_options(zigzag, size, zlevel=1, version=0):
@@ -36,7 +35,7 @@ def compress(data, options=None):
         len(data) * options.integer_size,
         ffi.cast("void *", ffi.from_buffer(output)),
         output_size,
-        options
+        options,
     )
 
     if lib.vbz_is_error(size):
@@ -55,9 +54,7 @@ def decompress(data, dtype, options=None):
             options = compression_options(zigzag, dtype().itemsize)
 
     uncompressed_size = lib.vbz_decompressed_size(
-        ffi.cast("void const *", ffi.from_buffer(data)),
-        len(data),
-        options
+        ffi.cast("void const *", ffi.from_buffer(data)), len(data), options
     )
 
     if lib.vbz_is_error(uncompressed_size):
@@ -70,10 +67,10 @@ def decompress(data, dtype, options=None):
         len(data),
         ffi.cast("void *", ffi.from_buffer(output)),
         uncompressed_size,
-        options
+        options,
     )
 
     if lib.vbz_is_error(size):
         raise Exception("Something unexpected went wrong")
 
-    return output[:int(size / options.integer_size)]
+    return output[: int(size / options.integer_size)]

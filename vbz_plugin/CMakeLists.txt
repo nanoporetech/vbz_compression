@@ -8,7 +8,7 @@ add_sanitizers(vbz_hdf_plugin)
 
 generate_export_header(vbz_hdf_plugin EXPORT_FILE_NAME vbz_plugin/vbz_hdf_plugin_export.h)
 
-set_property(TARGET vbz_hdf_plugin PROPERTY CXX_STANDARD 11)
+target_compile_features(vbz_hdf_plugin PRIVATE cxx_std_17)
 
 if(WIN32 AND HDF5_USE_STATIC_LIBRARIES)
     # See vbz_plugin.cpp -- if also building with Python on Windows then the runtime

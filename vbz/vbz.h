@@ -13,12 +13,18 @@ extern "C" {
 typedef uint32_t vbz_size_t;
 
 #define VBZ_ZSTD_ERROR ((vbz_size_t)-1)
-#define VBZ_STREAMVBYTE_INPUT_SIZE_ERROR ((vbz_size_t)-2)
-#define VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR ((vbz_size_t)-3)
-#define VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR ((vbz_size_t)-4)
+#define VBZ_INPUT_SIZE_ERROR ((vbz_size_t)-2)
+#define VBZ_INTEGER_SIZE_ERROR ((vbz_size_t)-3)
+#define VBZ_DESTINATION_SIZE_ERROR ((vbz_size_t)-4)
 #define VBZ_STREAMVBYTE_STREAM_ERROR ((vbz_size_t)-5)
 #define VBZ_VERSION_ERROR ((vbz_size_t)-6)
-#define VBZ_FIRST_ERROR VBZ_VERSION_ERROR
+#define VBZ_OUT_OF_MEMORY_ERROR ((vbz_size_t)-7)
+#define VBZ_FIRST_ERROR VBZ_OUT_OF_MEMORY_ERROR
+
+// Deprecated aliases.
+#define VBZ_STREAMVBYTE_INPUT_SIZE_ERROR VBZ_INPUT_SIZE_ERROR
+#define VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR VBZ_INTEGER_SIZE_ERROR
+#define VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR VBZ_DESTINATION_SIZE_ERROR
 
 struct CompressionOptions
 {
@@ -125,7 +131,8 @@ VBZ_EXPORT vbz_size_t vbz_decompress_sized(
 
 /// \brief Find the size for a decompressed block.
 ///        should be used to find the size of the destination buffer to allocate for decompression.
-/// \param source               Source compressed data for decompression.
+/// \note This is only valid for use with data from #vbz_compress_sized.
+/// \param source           Source compressed data for decompression.
 /// \param source_size      The size of the compressed source buffer in bytes.
 /// \param options          The options which will be used to decompress data.
 VBZ_EXPORT vbz_size_t vbz_decompressed_size(

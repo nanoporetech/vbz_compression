@@ -9,6 +9,7 @@
 
 #include <cassert>
 #include <vector>
+#include <cstdint>
 
 #ifdef _MSC_VER
 # define VBZ_RESTRICT __restrict
@@ -155,7 +156,7 @@ static uint8_t *svb_encode_scalar(const uint32_t *in,
     return dataPtr; // pointer to first unused data byte
 }
 
-vbz_size_t streamvbyte_encode_half(uint32_t const* input, uint32_t count, uint8_t* output)
+static vbz_size_t streamvbyte_encode_half(uint32_t const* input, uint32_t count, uint8_t* output)
 {
     uint8_t *keyPtr = output;
     uint32_t keyLen = (count + 3) / 4;  // 2-bits rounded to full byte
@@ -164,7 +165,7 @@ vbz_size_t streamvbyte_encode_half(uint32_t const* input, uint32_t count, uint8_
     return vbz_size_t(svb_encode_scalar(input, keyPtr, dataPtr, count) - output);
 }
 
-vbz_size_t streamvbyte_decode_half(uint8_t const* input, uint32_t* output, uint32_t count)
+static vbz_size_t streamvbyte_decode_half(uint8_t const* input, uint32_t* output, uint32_t count)
 {
     uint8_t *keyPtr = (uint8_t*)input;
     uint32_t keyLen = (count + 3) / 4;  // 2-bits rounded to full byte
@@ -176,6 +177,42 @@ vbz_size_t streamvbyte_decode_half(uint8_t const* input, uint32_t* output, uint3
         dataPtr,
         count
         ) - input);
+}
+
+// Basically a copy of streamvbyte_validate_stream from streamvbyte, but adjusted for our code sizes.
+static bool streamvbyte_validate_stream_half(uint8_t const* in, size_t inCount, uint32_t outCount)
+{
+  if (inCount == 0 || outCount == 0)
+    return inCount == outCount;
+
+  // 2-bits per key (rounded up)
+  // Note that we don't add to outCount in case it overflows
+  uint32_t keyLen = outCount / 4;
+  if (outCount & 3)
+    keyLen++;
+
+  // Check that there's enough space for the keys
+  if (keyLen > inCount)
+    return false;
+
+  // Accumulate the key sizes in a wider type to avoid overflow
+  const uint8_t *keyPtr = in;
+  uint8_t shift = 0;
+  uint32_t key = *keyPtr++;
+  uint64_t encodedSize = 0;
+  for (uint32_t c = 0; c < outCount; c++) {
+    if (shift == 8) {
+      shift = 0;
+      key = *keyPtr++;
+    }
+    const uint8_t code = (key >> shift) & 0x3;
+    encodedSize += (1 << code) >> 1;
+    shift += 2;
+  }
+  // We encode in nibbles so round up
+  encodedSize = (encodedSize + 1) / 2;
+
+  return encodedSize == inCount - keyLen;
 }
 
 
@@ -211,12 +248,18 @@ struct StreamVByteWorkerV1
     static vbz_size_t decompress(gsl::span<char const> input, gsl::span<char> output_bytes)
     {
         auto const output = output_bytes.as_span<T>();
+        auto in_data = input.as_span<std::uint8_t const>().data();
+        auto const out_size = vbz_size_t(output.size());
+
+        if (!streamvbyte_validate_stream_half(in_data, input.size_bytes(), out_size)) {
+            return VBZ_STREAMVBYTE_STREAM_ERROR;
+        }
         
-        std::vector<std::uint32_t> intermediate_buffer(output.size());
+        std::vector<std::uint32_t> intermediate_buffer(out_size);
         auto read_bytes = streamvbyte_decode_half(
-            input.as_span<std::uint8_t const>().data(),
+            in_data,
             intermediate_buffer.data(),
-            vbz_size_t(intermediate_buffer.size())
+            out_size
         );
         if (read_bytes != input.size())
         {

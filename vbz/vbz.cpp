@@ -13,7 +13,8 @@
 #include "vbz.h"
 
 namespace {
-// util for using malloc with unique_ptr
+// util for using malloc with unique_ptr.
+// This is required since a vector would throw if the size was too big.
 struct free_delete
 {
     void operator()(void* x) { free(x); }
@@ -29,11 +30,23 @@ gsl::span<char const> make_data_buffer(void const* data, vbz_size_t size)
     return gsl::make_span(static_cast<char const*>(data), size);
 }
     
-void copy_buffer(
+vbz_size_t copy_buffer(
     gsl::span<char const> source,
     gsl::span<char> dest)
 {
+    if (source.size() > dest.size()) {
+        return VBZ_DESTINATION_SIZE_ERROR;
+    }
     std::copy(source.begin(), source.end(), dest.begin());
+    return vbz_size_t(source.size());
+}
+
+bool is_valid_integer_size(CompressionOptions const* options) {
+    return options->integer_size == 0
+        || options->integer_size == 1
+        || options->integer_size == 2
+        || options->integer_size == 4
+        ;
 }
 
 struct VbzSizedHeader
@@ -53,11 +66,12 @@ bool vbz_is_error(vbz_size_t result_value)
 char const* vbz_error_string(vbz_size_t error_value)
 {
     if (VBZ_ZSTD_ERROR == error_value) return "VBZ_ZSTD_ERROR";
-    if (VBZ_STREAMVBYTE_INPUT_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_INPUT_SIZE_ERROR";
-    if (VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_INTEGER_SIZE_ERROR";
-    if (VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR == error_value) return "VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR";
+    if (VBZ_INPUT_SIZE_ERROR == error_value) return "VBZ_INPUT_SIZE_ERROR";
+    if (VBZ_INTEGER_SIZE_ERROR == error_value) return "VBZ_INTEGER_SIZE_ERROR";
+    if (VBZ_DESTINATION_SIZE_ERROR == error_value) return "VBZ_DESTINATION_SIZE_ERROR";
     if (VBZ_STREAMVBYTE_STREAM_ERROR == error_value) return "VBZ_STREAMVBYTE_STREAM_ERROR";
     if (VBZ_VERSION_ERROR == error_value) return "VBZ_VERSION_ERROR";
+    if (VBZ_OUT_OF_MEMORY_ERROR == error_value) return "VBZ_OUT_OF_MEMORY_ERROR";
 
     return "VBZ_UNKNOWN_ERROR";
 }
@@ -66,8 +80,12 @@ vbz_size_t vbz_max_compressed_size(
     vbz_size_t source_size,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     vbz_size_t max_size = source_size;
-    if (options->integer_size != 0 || options->perform_delta_zig_zag)
+    if (options->integer_size != 0)
     {
         auto size_fn = vbz_max_streamvbyte_compressed_size_v0;
         if (options->vbz_version == 1)
@@ -102,13 +120,16 @@ vbz_size_t vbz_compress(
     vbz_size_t destination_capacity,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     auto current_source = make_data_buffer(source, source_size);
     auto dest_buffer = make_data_buffer(destination, destination_capacity);
 
     if (options->zstd_compression_level == 0 && options->integer_size == 0)
     {
-        copy_buffer(current_source, dest_buffer);
-        return source_size;
+        return copy_buffer(current_source, dest_buffer);
     }
 
     // optional intermediate buffer - allocated if needed later, but stored for
@@ -118,9 +139,11 @@ vbz_size_t vbz_compress(
     if (options->integer_size != 0)
     {
         auto size_fn = vbz_max_streamvbyte_compressed_size_v0;
+        auto compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v0;
         if (options->vbz_version == 1)
         {
             size_fn = vbz_max_streamvbyte_compressed_size_v1;
+            compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v1;
         }
         else if (options->vbz_version != 0)
         {
@@ -140,23 +163,16 @@ vbz_size_t vbz_compress(
         if (options->zstd_compression_level != 0)
         {
             intermediate_storage.reset(malloc(max_stream_v_byte_size));
+            if (!intermediate_storage) {
+                return VBZ_OUT_OF_MEMORY_ERROR;
+            }
             streamvbyte_dest = make_data_buffer(intermediate_storage.get(), max_stream_v_byte_size);
         }
-        else
+        else if (max_stream_v_byte_size > destination_capacity)
         {
-            assert(max_stream_v_byte_size <= destination_capacity);
+            return VBZ_DESTINATION_SIZE_ERROR;
         }
 
-        auto compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v0;
-        if (options->vbz_version == 1)
-        {
-            compress_fn = vbz_delta_zig_zag_streamvbyte_compress_v1;
-        }
-        else if (options->vbz_version != 0)
-        {
-            return VBZ_VERSION_ERROR;
-        }
-        
         auto compressed_size = compress_fn(
             current_source.data(),
             vbz_size_t(current_source.size()),
@@ -198,14 +214,17 @@ vbz_size_t vbz_decompress(
     vbz_size_t destination_size,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     auto current_source = make_data_buffer(source, source_size);
     auto dest_buffer = make_data_buffer(destination, destination_size);
 
     // If nothing is enabled, just do a copy between buffers and return.
     if (options->zstd_compression_level == 0 && options->integer_size == 0)
     {
-        copy_buffer(current_source, dest_buffer);
-        return source_size;
+        return copy_buffer(current_source, dest_buffer);
     }
 
     // optional intermediate buffer - allocated if needed later, but stored for
@@ -223,12 +242,22 @@ vbz_size_t vbz_decompress(
         auto zstd_dest = dest_buffer;
         if (options->integer_size != 0)
         {
+#ifdef SANITIZE_FUZZER
+            // Skip big allocations since the fuzzer will easily go over its own RSS limit,
+            // leading to a spurious OoM crash.
+            if (max_zstd_decompressed_size > 10 * 1024 * 1024) {
+                return VBZ_ZSTD_ERROR;
+            }
+#endif
             intermediate_storage.reset(malloc(max_zstd_decompressed_size));
+            if (!intermediate_storage) {
+                return VBZ_OUT_OF_MEMORY_ERROR;
+            }
             zstd_dest = make_data_buffer(intermediate_storage.get(), (vbz_size_t)max_zstd_decompressed_size);
         }
-        else
+        else if (max_zstd_decompressed_size > destination_size)
         {
-            assert(max_zstd_decompressed_size <= destination_size);
+            return VBZ_DESTINATION_SIZE_ERROR;
         }
 
         auto compressed_size = ZSTD_decompress(
@@ -277,6 +306,10 @@ vbz_size_t vbz_compress_sized(
     vbz_size_t destination_capacity,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     auto dest_buffer = make_data_buffer(destination, destination_capacity);
 
     // Extract header information
@@ -303,18 +336,23 @@ vbz_size_t vbz_decompress_sized(
     vbz_size_t destination_capacity,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     auto source_buffer = make_data_buffer(source, source_size);
 
     if (source_buffer.size() < sizeof(VbzSizedHeader))
     {
-        return VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR;
+        return VBZ_INPUT_SIZE_ERROR;
     }
 
     // Extract header information
-    auto const& source_header = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>()[0];
-    if (destination_capacity < source_header.original_size)
+    auto header_bytes = source_buffer.subspan(0, sizeof(VbzSizedHeader));
+    auto source_header = header_bytes.as_span<VbzSizedHeader const>().begin();
+    if (destination_capacity < source_header->original_size)
     {
-        return VBZ_STREAMVBYTE_DESTINATION_SIZE_ERROR;
+        return VBZ_DESTINATION_SIZE_ERROR;
     }
 
     // Compress data info remaining dest buffer
@@ -323,7 +361,7 @@ vbz_size_t vbz_decompress_sized(
         src_compressed_data.data(),
         vbz_size_t(src_compressed_data.size()),
         destination,
-        source_header.original_size,
+        source_header->original_size,
         options
     );
 }
@@ -333,7 +371,15 @@ vbz_size_t vbz_decompressed_size(
     vbz_size_t source_size,
     CompressionOptions const* options)
 {
+    if (!is_valid_integer_size(options)) {
+        return VBZ_INTEGER_SIZE_ERROR;
+    }
+
     auto source_buffer = make_data_buffer(source, source_size);
+
+    if (source_buffer.size() < sizeof(VbzSizedHeader)) {
+        return VBZ_INPUT_SIZE_ERROR;
+    }
 
     auto const& source_header = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>()[0];
     return source_header.original_size;

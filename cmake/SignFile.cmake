@@ -3,7 +3,7 @@ set(file_to_sign ${CMAKE_ARGV3})
 # Pull from command line by default - otherwise require an environment variable.
 if (NOT MINKNOW_CODE_SIGN_IDENTITY)
     if ("$ENV{MINKNOW_CODE_SIGN_IDENTITY}" STREQUAL "")
-        message(FATAL_ERROR "Caller must specify code sign identiyy in environment variable 'MINKNOW_CODE_SIGN_IDENTITY'")
+        message(FATAL_ERROR "Caller must specify code sign identity in environment variable 'MINKNOW_CODE_SIGN_IDENTITY'")
     endif()
 
     set(MINKNOW_CODE_SIGN_IDENTITY "$ENV{MINKNOW_CODE_SIGN_IDENTITY}")

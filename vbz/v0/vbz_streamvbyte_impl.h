@@ -7,6 +7,8 @@
 
 #include <gsl/gsl-lite.hpp>
 
+#include <algorithm>
+#include <cstdint>
 #include <vector>
 
 /// \brief Generic implementation, safe for all integer types, and platforms.
@@ -41,12 +43,23 @@ struct StreamVByteWorkerV0
     static vbz_size_t decompress(gsl::span<char const> input, gsl::span<char> output_bytes)
     {
         auto const output = output_bytes.as_span<T>();
-        
-        std::vector<std::uint32_t> intermediate_buffer(output.size());
+        auto in_data = input.as_span<std::uint8_t const>().data();
+        auto const out_size = vbz_size_t(output.size());
+
+        if (!streamvbyte_validate_stream(in_data, input.size_bytes(), out_size)) {
+            return VBZ_STREAMVBYTE_STREAM_ERROR;
+        }
+
+        // streamvbyte requires additional padding, so copy to a temporary buffer that has that
+        std::vector<uint8_t> in_temp(input.size_bytes() + STREAMVBYTE_PADDING);
+        std::copy_n(in_data, input.size_bytes(), in_temp.begin());
+        in_data = in_temp.data();
+
+        std::vector<std::uint32_t> intermediate_buffer(out_size);
         auto read_bytes = streamvbyte_decode(
-            input.as_span<std::uint8_t const>().data(),
+            in_data,
             intermediate_buffer.data(),
-            vbz_size_t(intermediate_buffer.size())
+            out_size
         );
         if (read_bytes != input.size())
         {

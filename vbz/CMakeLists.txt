@@ -1,4 +1,3 @@
-
 add_library(vbz STATIC
     v0/vbz_streamvbyte.h
     v0/vbz_streamvbyte.cpp
@@ -16,7 +15,7 @@ add_sanitizers(vbz)
 
 generate_export_header(vbz EXPORT_FILE_NAME vbz/vbz_export.h)
 
-set_property(TARGET vbz PROPERTY CXX_STANDARD 11)
+target_compile_features(vbz PRIVATE cxx_std_17)
 
 target_include_directories(vbz
     PUBLIC
@@ -31,10 +30,10 @@ add_dependencies(vbz
     streamvbyte
 )
 
-if (WIN32 OR 
-    (APPLE AND NOT "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64") OR
-    "${CMAKE_SYSTEM_PROCESSOR}" MATCHES "x86_64")
-    if(NOT MSVC)
+option(VBZ_DISABLE_SSE3 "Disable SSE3 optimisations" OFF)
+if ((WIN32 OR CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64") AND NOT VBZ_DISABLE_SSE3)
+    message(STATUS "SSE3 optimisations enabled")
+    if(${CMAKE_CXX_COMPILER_ID} MATCHES "IntelLLVM" OR NOT MSVC)
         target_compile_options(vbz PRIVATE -mssse3)
     endif()
 endif()

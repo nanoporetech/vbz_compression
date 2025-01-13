@@ -3,8 +3,8 @@ Builds the C Python wrapper for libvbz
 """
 
 import os
-from cffi import FFI
 
+from cffi import FFI
 
 vbz_include_paths = os.environ["VBZ_INCLUDE_PATHS"].split(";")
 vbz_libs = os.environ["VBZ_LINK_LIBS"].split(";")
@@ -20,13 +20,14 @@ ffibuilder.set_source(
     """,
     include_dirs=vbz_include_paths,
     extra_objects=vbz_libs,
-    source_extension='.cpp',
-    libraries=['c', 'stdc++'],
-    extra_compile_args=['-std=c++11'],
+    source_extension=".cpp",
+    libraries=["c", "stdc++"],
+    extra_compile_args=["-std=c++11"],
 )
 
 
-ffibuilder.cdef("""
+ffibuilder.cdef(
+    """
 typedef uint32_t vbz_size_t;
 
 typedef struct {
@@ -64,7 +65,8 @@ vbz_size_t vbz_decompress_sized(
     vbz_size_t destination_capacity,
     CompressionOptions const* options
 );
-""")
+"""
+)
 
 
 if __name__ == "__main__":

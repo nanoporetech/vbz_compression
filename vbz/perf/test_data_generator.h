@@ -44,7 +44,6 @@ struct SignalGenerator
 private:
     static std::vector<std::vector<T>> do_generation(unsigned int seed, std::size_t& max_element_count)
     {
-        std::random_device rd;  
         std::default_random_engine rand(seed);
         std::uniform_int_distribution<std::uint32_t> length_dist(30000, 200000);
 

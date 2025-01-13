@@ -1,4 +1,10 @@
-find_package(GoogleBenchmark)
+if(APPLE)
+	list(PREPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
+	list(PREPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
+endif()
+
+find_package(benchmark)
+
 
 add_executable(vbz_hdf_perf_test
     vbz_hdf_perf.cpp
@@ -7,7 +13,7 @@ add_sanitizers(vbz_hdf_perf_test)
 
 target_link_libraries(vbz_hdf_perf_test
     PRIVATE
-        google::benchmark
+        benchmark::benchmark
         ${HDF5_C_LIBRARIES}
         hdf_test_utils
         vbz_hdf_plugin

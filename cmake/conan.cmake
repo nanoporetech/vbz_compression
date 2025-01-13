@@ -208,13 +208,25 @@ function(conan_cmake_settings result)
         list(GET VERSION_LIST 0 MAJOR)
         list(GET VERSION_LIST 1 MINOR)
         set(COMPILER_VERSION ${MAJOR}.${MINOR})
-        set(_CONAN_SETTING_COMPILER icc)
+        set(_CONAN_SETTING_COMPILER intel-cc)
         set(_CONAN_SETTING_COMPILER_VERSION ${COMPILER_VERSION})
-        set(_SETTINGS ${_SETTINGS} -s compiler=icc -s compiler.version=${COMPILER_VERSION})
+        set(_SETTINGS ${_SETTINGS} -s compiler=intel-cc -s compiler.version=${COMPILER_VERSION})
         if (USING_CXX)
             conan_cmake_detect_unix_libcxx(_LIBCXX)
             set(_CONAN_SETTING_COMPILER_LIBCXX ${_LIBCXX})
         endif ()
+    elseif (${CMAKE_${LANGUAGE}_COMPILER_ID} STREQUAL IntelLLVM)
+        string(REPLACE "." ";" VERSION_LIST ${CMAKE_${LANGUAGE}_COMPILER_VERSION})
+        list(GET VERSION_LIST 0 MAJOR)
+        list(GET VERSION_LIST 1 MINOR)
+        set(COMPILER_VERSION ${MAJOR}.${MINOR})
+        set(_CONAN_SETTING_COMPILER intel-cc)
+        set(_CONAN_SETTING_COMPILER_VERSION ${COMPILER_VERSION})
+        set(_SETTINGS ${_SETTINGS} -s compiler=intel-cc -s compiler.version=${COMPILER_VERSION})
+        if (USING_CXX)
+            conan_cmake_detect_unix_libcxx(_LIBCXX)
+            set(_CONAN_SETTING_COMPILER_LIBCXX ${_LIBCXX})
+        endif ()        
     else()
         message(FATAL_ERROR "Conan: compiler setup not recognized")
     endif()
@@ -283,11 +295,13 @@ function(conan_cmake_detect_unix_libcxx result)
         endif()
     endforeach()
 
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E echo "#include <string>"
-        COMMAND ${CMAKE_CXX_COMPILER} -x c++ ${compile_options} -E -dM -
-        OUTPUT_VARIABLE string_defines
-    )
+    if (NOT MSVC)
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E echo "#include <string>"
+            COMMAND ${CMAKE_CXX_COMPILER} -x c++ ${compile_options} -E -dM -
+            OUTPUT_VARIABLE string_defines
+        )
+    endif()
 
     if(string_defines MATCHES "#define __GLIBCXX__")
         # Allow -D_GLIBCXX_USE_CXX11_ABI=ON/OFF as argument to cmake
