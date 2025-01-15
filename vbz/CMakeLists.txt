@@ -41,7 +41,7 @@ endif()
 target_link_libraries(vbz
     PUBLIC
         ${STREAMVBYTE_STATIC_LIB}
-        zstd::zstd
+        ${zstd_target}
 )
 
 if (BUILD_TESTING)

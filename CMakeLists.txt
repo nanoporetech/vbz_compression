@@ -148,8 +148,18 @@ if (NOT APPLE)
 endif()
 
 find_package(HDF5 1.8.16)
-find_package(zstd 1.3.1 REQUIRED)
 find_package(Sanitizers)
+
+# We need CONFIG on macOS to avoid linking to brew. This also changes
+# the name of the target.
+if (APPLE)
+    find_package(zstd 1.3.1 REQUIRED CONFIG)
+    set(zstd_target zstd::libzstd_static)
+    set(ZSTD_LIBRARY $<TARGET_FILE:zstd::libzstd_static>)
+else()
+    find_package(zstd 1.3.1 REQUIRED)
+    set(zstd_target zstd::zstd)
+endif()
 
 get_filename_component(STREAMVBYTE_SOURCE_DIR
     third_party/streamvbyte
