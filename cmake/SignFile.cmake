@@ -1,19 +1,24 @@
 set(file_to_sign ${CMAKE_ARGV3})
 
 # Pull from command line by default - otherwise require an environment variable.
-if (NOT MINKNOW_CODE_SIGN_IDENTITY)
-    if ("$ENV{MINKNOW_CODE_SIGN_IDENTITY}" STREQUAL "")
-        message(FATAL_ERROR "Caller must specify code sign identity in environment variable 'MINKNOW_CODE_SIGN_IDENTITY'")
-    endif()
+macro(sk_pull_var_from_env var)
+    if (NOT ${var})
+        if ("$ENV{${var}}" STREQUAL "")
+            message(FATAL_ERROR "To use codesigning, set the ${var} environment variable")
+        endif()
 
-    set(MINKNOW_CODE_SIGN_IDENTITY "$ENV{MINKNOW_CODE_SIGN_IDENTITY}")
-endif()
+        set(${var} "$ENV{${var}}")
+    endif()
+endmacro()
+
 
 if (APPLE)
+    sk_pull_var_from_env(APPLE_APP_SIGN_KEY_THUMBPRINT)
     message("Signing file... ${file_to_sign}${keychain_comment}")
     set(SIGN_COMMAND 
-        codesign -s ${MINKNOW_CODE_SIGN_IDENTITY} ${keychain_arg} --force --deep -vvvv ${file_to_sign})
+        codesign -s ${APPLE_APP_SIGN_KEY_THUMBPRINT} ${keychain_arg} --force --deep -vvvv ${file_to_sign})
 elseif(WIN32)
+    sk_pull_var_from_env(WINDOWS_CODE_SIGN_THUMBPRINT)
     find_program(
         SIGNTOOL_EXE "Signtool.exe"
         PATHS "C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit")
@@ -23,7 +28,7 @@ elseif(WIN32)
     endif()
 
     message("Signing file... ${file_to_sign}${comment}")
-    set(SIGN_COMMAND ${SIGNTOOL_EXE} sign "/v" "/sha1" "${MINKNOW_CODE_SIGN_IDENTITY}"
+    set(SIGN_COMMAND ${SIGNTOOL_EXE} sign "/v" "/sha1" "${WINDOWS_CODE_SIGN_THUMBPRINT}"
         "/tr" "http://rfc3161timestamp.globalsign.com/advanced"
         "/td" "SHA256"
         ${file_to_sign}

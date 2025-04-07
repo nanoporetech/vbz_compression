@@ -313,8 +313,8 @@ vbz_size_t vbz_compress_sized(
     auto dest_buffer = make_data_buffer(destination, destination_capacity);
 
     // Extract header information
-    auto& dest_header = dest_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader>()[0];
-    dest_header.original_size = source_size;
+    auto header_span = dest_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader>();
+    header_span[0].original_size = source_size;
 
     // Compress data info remaining dest buffer
     auto dest_compressed_data = dest_buffer.subspan(sizeof(VbzSizedHeader));
@@ -381,8 +381,8 @@ vbz_size_t vbz_decompressed_size(
         return VBZ_INPUT_SIZE_ERROR;
     }
 
-    auto const& source_header = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>()[0];
-    return source_header.original_size;
+    auto header_span = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>();
+    return header_span[0].original_size;
 }
 
 
