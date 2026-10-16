@@ -54,6 +54,22 @@ struct VbzSizedHeader
     vbz_size_t original_size;
 };
 
+static inline void write_sized_header(gsl::span<char> dest, vbz_size_t size) {
+    auto* ptr = reinterpret_cast<uint8_t*>(dest.data());
+    ptr[0] = static_cast<uint8_t>(size);
+    ptr[1] = static_cast<uint8_t>(size >> 8);
+    ptr[2] = static_cast<uint8_t>(size >> 16);
+    ptr[3] = static_cast<uint8_t>(size >> 24);
+}
+
+static inline vbz_size_t read_sized_header(gsl::span<char const> src) {
+    auto const* ptr = reinterpret_cast<uint8_t const*>(src.data());
+    return static_cast<vbz_size_t>(ptr[0])
+        | (static_cast<vbz_size_t>(ptr[1]) << 8)
+        | (static_cast<vbz_size_t>(ptr[2]) << 16)
+        | (static_cast<vbz_size_t>(ptr[3]) << 24);
+}
+
 }
 
 extern "C" {
@@ -312,9 +328,8 @@ vbz_size_t vbz_compress_sized(
 
     auto dest_buffer = make_data_buffer(destination, destination_capacity);
 
-    // Extract header information
-    auto header_span = dest_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader>();
-    header_span[0].original_size = source_size;
+    // Write header information in little-endian
+    write_sized_header(dest_buffer, source_size);
 
     // Compress data info remaining dest buffer
     auto dest_compressed_data = dest_buffer.subspan(sizeof(VbzSizedHeader));
@@ -347,10 +362,9 @@ vbz_size_t vbz_decompress_sized(
         return VBZ_INPUT_SIZE_ERROR;
     }
 
-    // Extract header information
-    auto header_bytes = source_buffer.subspan(0, sizeof(VbzSizedHeader));
-    auto source_header = header_bytes.as_span<VbzSizedHeader const>().begin();
-    if (destination_capacity < source_header->original_size)
+    // Extract header information in little-endian
+    auto const original_size = read_sized_header(source_buffer);
+    if (destination_capacity < original_size)
     {
         return VBZ_DESTINATION_SIZE_ERROR;
     }
@@ -361,7 +375,7 @@ vbz_size_t vbz_decompress_sized(
         src_compressed_data.data(),
         vbz_size_t(src_compressed_data.size()),
         destination,
-        source_header->original_size,
+        original_size,
         options
     );
 }
@@ -381,8 +395,7 @@ vbz_size_t vbz_decompressed_size(
         return VBZ_INPUT_SIZE_ERROR;
     }
 
-    auto header_span = source_buffer.subspan(0, sizeof(VbzSizedHeader)).as_span<VbzSizedHeader const>();
-    return header_span[0].original_size;
+    return read_sized_header(source_buffer);
 }
 
 
